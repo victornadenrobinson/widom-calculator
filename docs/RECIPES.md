@@ -160,3 +160,26 @@ For lambda^power integration, the existing plot_tdi.py additionally shows the
 transformed coordinate and individual weighted contributions. Run it when
 diagnosing low-lambda quadrature. Phase checks remain optional separate work
 with liquid_check.py; high-lambda diagnostics do not replace full-potential MD.
+
+### Quadrature extension of the Young pilot
+
+After the time extension has finished, use
+`QUAD=gk9 PS=6.25 bash mlp_pipeline/young_liquid_pilot.sh` to retain the four
+GL4 lambda trajectories and add five Kronrod trajectories at the same target
+length. Completed old lambdas are skipped; incomplete ones continue. Keep the
+same output directory and do not run concurrent extensions. New trajectories
+need their own hot preparation/equilibration and full requested production.
+`run_history/` archives prior stage0/collected JSON metadata before each launch;
+the diary records planned quadrature and checks old sample prefixes afterward.
+The pilot now infers the existing rule and time target when QUAD/PS are omitted,
+so a later time extension preserves GK9 rather than reverting to GL4.
+
+Supported reuse is GL(n) -> GK(2n+1): **4 -> 9**, **8 -> 17**, **10 -> 21**,
+**15 -> 31**. These are separate families, not a reusable sequence from 4 to 31.
+The present code is not a Gauss–Kronrod–Patterson hierarchy: GK9 -> GK19/21
+changes existing nodes and is refused. A higher family requires a fresh output
+directory and new sampling. A genuinely repeatedly nested rule would need a
+separate validated implementation. Embedded Kronrod−Gauss differences estimate
+quadrature sensitivity; they also contain sampling noise and are not rigorous
+error bounds. Compare at equal production cutoffs; missing new lambdas must not
+be presented as a completed Kronrod integral.

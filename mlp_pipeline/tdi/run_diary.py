@@ -2,6 +2,8 @@
 import datetime
 import hashlib
 import json
+import os
+import shutil
 from pathlib import Path
 import sys
 import numpy as np
@@ -23,6 +25,13 @@ for f in sorted(root.glob('*_node[0-9]*.npy')):
             raise SystemExit(f'Existing sample prefix changed: {f}; inspect the run.')
 entry = dict(time=datetime.datetime.now(datetime.timezone.utc).isoformat(), event=event,
              target_ps_per_lambda=target, samples=counts)
+if event == 'start':
+    entry['quadrature'] = {k: os.environ.get(k) for k in ('RULE','NODES','NGAUSS')}
+    archive = root / 'run_history' / datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%S_%f')
+    archive.mkdir(parents=True)
+    for source in list(root.glob('*_stage0.json')) + list(root.glob('tdi_*.json')):
+        shutil.copy2(source, archive / source.name)
+    entry['previous_metadata'] = str(archive)
 if event == 'finish':
     entry['exit_code'] = int(sys.argv[4])
     entry['retained_prefixes_verified'] = len(saved)
@@ -33,6 +42,8 @@ with diary.open('a') as f:
     f.write(json.dumps(entry) + '\n')
 with (root / 'RUN_DIARY.md').open('a') as f:
     f.write(f"- {entry['time']}: **{event}**, target {target:g} ps/lambda")
+    if event == 'start':
+        f.write(f"; quadrature {entry['quadrature']}")
     if event == 'finish':
         f.write(f"; exit {entry['exit_code']}; {len(saved)} previous sample prefixes verified")
     f.write('; samples: ' + ', '.join(f"{k}: {v['count']}" for k, v in counts.items()) + '\n')

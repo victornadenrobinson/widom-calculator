@@ -101,3 +101,16 @@ stress; it performs no MD and writes no results. Override `--frames` if needed.
 A passing check establishes model/environment compatibility, not accuracy or
 TDI convergence. Model weights are on the cluster and cannot be tested in the
 cloud checkout.
+
+### Young ten-minute liquid pilot
+
+Inside an interactive Young GPU allocation, run
+`bash mlp_pipeline/young_liquid_pilot.sh`. Uses the first Slurm-assigned GPU,
+96-atom H2O at 350 GPa / 7000 K, four Gauss–Legendre lambda values, 0.2 ps
+at 12000 K, 0.2 ps equilibration and 0.25 ps production per lambda, dt 0.5 fs.
+DFT hull volume lookup gives 2.52062075 A^3/atom. Approximate ten-minute target
+includes model startup; no runtime guarantee. Output defaults to
+`runs/tdi_mfinkc_pilot_350GPa_7000K`; repeat resumes that pilot. Finishes with
+`liquid_check.py` (oxygen MSD/diffusion); short trajectories may not establish
+phase. Four lambda values and this sampling length are for execution testing,
+not production hull accuracy. Use a new OUTDIR for changed pilot settings.

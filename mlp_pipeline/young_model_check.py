@@ -10,6 +10,7 @@ p.add_argument('--frames', default='runs/valid_m.extxyz')
 a = p.parse_args()
 if not Path(a.frames).is_file():
     p.error(f'frame file missing: {a.frames}; supply --frames PATH')
+import tensorpotential  # configure its Keras backend before importing TensorFlow
 import tensorflow as tf
 from ase.io import read
 print('TensorFlow:', tf.__version__, flush=True)

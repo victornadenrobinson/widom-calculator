@@ -29,3 +29,13 @@ def test_saved_completion_requires_matching_state_and_full_sampling(tmp_path):
     assert not q.node_complete(tmp_path,'test',0,.25)
     np.savez(sf,series=data,model='wrong-model',dt=.5,T=7000,lam=.0625)
     assert not q.node_complete(tmp_path,'test',0,.125)
+
+
+def test_exact_mixture_cell_size():
+    assert q.cell_size(128,2)==(4,256)
+    assert q.cell_size(128,2.25)==(4,288)
+    assert q.cell_size(54,2.5)==(3,135)
+    with pytest.raises(ValueError,match='integer'):
+        q.cell_size(54,2.25)
+    with pytest.raises(ValueError,match='2\\*n\\^3'):
+        q.cell_size(100,2)

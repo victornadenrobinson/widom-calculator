@@ -251,3 +251,26 @@ new allocation if needed. Ctrl-C terminates child process groups; saved complete
 chunks can be resumed. Check exit status/logs and completion, then perform
 phase/convergence analysis. This new four-GPU runner has local geometry,
 quadrature and syntax checks; actual four-GPU GRACE throughput awaits Young.
+
+The adaptive quadrature runner accepts `--oxygen 128 --hper 2.25` for a
+128 O + 288 H = 416-atom H2.25O liquid. `--oxygen` counts oxygen atoms (and
+therefore H_xO formula units), not total atoms. The present cubic bcc start
+builder requires 2*n^3 oxygen atoms: 16, 54, 128, 250, ... . H/O times the
+oxygen count must give a whole number; otherwise the runner rejects it rather
+than silently rounding the composition. The available DFT hull EOS lookup
+covers H/O 2–7; intermediate compositions use interpolated volumes. Pure H
+has no oxygen and needs a separate hydrogen-cell interface, not --oxygen.
+The default H2O campaign keeps its original directory; other compositions and
+sizes get automatically named roots. Explicit --root remains available and
+existing campaign metadata refuses incompatible settings. Example (inside a
+Young GPU allocation):
+
+```bash
+"$HOME/grace-venv/bin/python" mlp_pipeline/young_quad_sweep.py --oxygen 128 --hper 2.25 --ps 6.25
+```
+
+The runner prints O, H and total atom counts. The default is `--oxygen 128
+--hper 2` (384 atoms), so existing H2O invocations and campaign configuration
+remain compatible. For a systematic finite-size comparison, compare more than
+one oxygen count and consider the differing initial-cell geometry; equal O
+counts give different total atom counts as H/O changes.

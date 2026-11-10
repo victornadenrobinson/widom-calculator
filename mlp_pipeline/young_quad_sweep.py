@@ -48,13 +48,33 @@ def node_complete(directory,tag,k,target):
     except (ValueError,OSError,KeyError):return False
 
 
+def cell_size(oxygen, hper):
+    """Represent exact composition on a cubic bcc starting lattice (2*n^3 O)."""
+    if oxygen < 1 or not np.isfinite(hper) or not 2 <= hper <= 7:
+        raise ValueError('Use a positive oxygen count and H/O between 2 and 7 (available EOS coverage).')
+    nrep = round((oxygen / 2) ** (1 / 3))
+    if nrep < 1 or 2 * nrep ** 3 != oxygen:
+        raise ValueError('For the current cubic bcc builder --oxygen must be 2*n^3: e.g. 16, 54, 128, 250.')
+    hydrogen = round(oxygen * hper)
+    if not np.isclose(hydrogen, oxygen * hper, rtol=0, atol=1e-8):
+        raise ValueError('H/O times oxygen count must be an integer; choose a representable composition.')
+    return nrep, hydrogen
+
+
 def main():
     ap=argparse.ArgumentParser(description=__doc__)
     ap.add_argument('--P',type=float,default=350);ap.add_argument('--T',type=float,default=7000)
-    ap.add_argument('--ps',type=float,default=6.25);ap.add_argument('--root',default='runs/quad384_350GPa_7000K')
+    ap.add_argument('--ps',type=float,default=6.25);ap.add_argument('--root',default=None)
+    ap.add_argument('--oxygen',type=int,default=128,help='O atoms / HxO formula units (bcc builder: 2*n^3; default 128)')
+    ap.add_argument('--hper',type=float,default=2.0,help='hydrogen per oxygen, e.g. 2.25 (default 2)')
     ap.add_argument('--per-gpu',type=int,default=4);ap.add_argument('--families',type=int,nargs='+',default=[4,8,10,15],choices=[4,8,10,15])
     ap.add_argument('--model',default='grace-ft:runs/grace/ft_mfinkc_cont/seed/1/final_model')
     args=ap.parse_args();os.chdir(ROOT)
+    try: nrep, hydrogen = cell_size(args.oxygen,args.hper)
+    except ValueError as e: ap.error(str(e))
+    if args.root is None:
+        args.root = ('runs/quad384_350GPa_7000K' if (args.oxygen,args.hper,args.P,args.T)==(128,2.,350.,7000.)
+                     else f'runs/quad_O{args.oxygen}_H{args.hper:g}_{args.P:g}GPa_{args.T:g}K')
     if not os.environ.get('SLURM_JOB_ID'):ap.error('Run inside a Slurm GPU allocation.')
     gpus=os.environ.get('CUDA_VISIBLE_DEVICES','').split(',')
     if not all(gpus) or len(set(gpus))!=len(gpus):ap.error('Need valid Slurm-assigned CUDA_VISIBLE_DEVICES.')
@@ -66,7 +86,8 @@ def main():
     lock=(root/'sweep.lock').open('w')
     try:fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
     except BlockingIOError:ap.error('Another sweep is already using this root.')
-    config=dict(P=args.P,T=args.T,model=args.model,nrep=4,liquid_start='bcc',dt=.5,chunk_ps=.125,equil_ps=.5,hot_ps=.5)
+    config=dict(P=args.P,T=args.T,model=args.model,nrep=nrep,liquid_start='bcc',dt=.5,chunk_ps=.125,equil_ps=.5,hot_ps=.5)
+    if args.hper != 2.: config['hper'] = args.hper
     cf=root/'campaign.json'
     if cf.exists() and json.loads(cf.read_text())!=config:ap.error('Campaign settings differ; use a new --root.')
     cf.write_text(json.dumps(config,indent=2))
@@ -88,9 +109,9 @@ def main():
         if prev and prev.get('rule')=='gk':j['stage']=1
         requested=f'gl{j["n"]}' if j['stage']==0 else f'gk{2*j["n"]+1}'
         rule,nodes,ng=plan(prev,requested);j.update(rule=rule,nodes=nodes,ng=ng,status='stage0',stage_started=time.time())
-        j['tag']=f'liquid_{args.P:.0f}GPa_{args.T:.0f}K_h2o_rep4_startbcc'
-        j['cmd']=[sys.executable,'-u',str(code/'tdi/run_real.py'),args.model,'--phase','liquid','--liquid-start','bcc','--nrep','4',
-                  '--P',str(args.P),'--T',str(args.T),'--hper','2','--nodes',str(nodes),'--rule',rule,'--ngauss',str(ng),
+        j['tag']=f'liquid_{args.P:.0f}GPa_{args.T:.0f}K_h{args.hper:g}o_rep{nrep}_startbcc'
+        j['cmd']=[sys.executable,'-u',str(code/'tdi/run_real.py'),args.model,'--phase','liquid','--liquid-start','bcc','--nrep',str(nrep),
+                  '--P',str(args.P),'--T',str(args.T),'--hper',str(args.hper),'--nodes',str(nodes),'--rule',rule,'--ngauss',str(ng),
                   '--power','4','--ps',str(args.ps),'--ps1','.5','--equil-ps','.5','--hot-ps','.5','--hot-T','12000',
                   '--chunk-ps','.125','--dt','.5','--outdir',str(j['directory'])]
         diary(j,'start');pending.append(dict(job=j,k=None))
@@ -104,7 +125,7 @@ def main():
         elif j['stage']==0:j['stage']=1;prepare(j)
         else:j['status']='done'
     def terminal_lines():
-        lines=[f'384-atom liquid H2O | {args.P:g} GPa / {args.T:g} K | {args.ps:g} ps/lambda | {len(gpus)} GPUs, {args.per_gpu} slots/GPU',
+        lines=[f'Liquid H{args.hper:g}O: {args.oxygen} O + {hydrogen} H = {args.oxygen+hydrogen} atoms | {args.P:g} GPa / {args.T:g} K | {args.ps:g} ps/lambda | {len(gpus)} GPUs, {args.per_gpu} slots/GPU',
                'Shared lambda queue; log files: '+str(root)]
         for gpu in gpus:
             tasks=[t for t in active if t['gpu']==gpu]

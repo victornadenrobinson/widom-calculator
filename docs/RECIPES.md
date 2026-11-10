@@ -274,3 +274,20 @@ The runner prints O, H and total atom counts. The default is `--oxygen 128
 remain compatible. For a systematic finite-size comparison, compare more than
 one oxygen count and consider the differing initial-cell geometry; equal O
 counts give different total atom counts as H/O changes.
+
+To monitor a sweep that is already running, from a **separate Young login-node
+terminal** (read-only; Ctrl-C stops only the viewer):
+
+```bash
+cd /lustre/scratch/mmm0037/H3O && git pull --ff-only origin gpt/youthful-jolly-review && "$HOME/grace-venv/bin/python" mlp_pipeline/tdi/watch_quad.py runs/quad384_350GPa_7000K
+```
+
+The viewer reads stage metadata and progress JSONs: it shows family/lambda,
+percent, steps/s and ms/step when available, and marks stale files. Without a
+progress file, "waiting or loading" covers both queued and model compilation;
+it cannot infer GPU assignment from these files. Progress appears only after a
+worker loads/compiles the model; updates are approximately every 30 seconds.
+`--once` prints one snapshot. This viewer does not start, stop or modify jobs.
+For future runner invocations the main dashboard also shows per-GPU worker
+families, startup times, progress and rates. Already-running runner processes
+continue to use the code they started with; pulling does not alter those workers.

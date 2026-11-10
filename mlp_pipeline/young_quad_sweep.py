@@ -48,6 +48,28 @@ def node_complete(directory,tag,k,target):
     except (ValueError,OSError,KeyError):return False
 
 
+def worker_status(task, now=None):
+    """Describe a running task, ignoring stale progress from earlier processes."""
+    now=time.time() if now is None else now
+    elapsed=max(0,now-task['launched'])
+    j=task['job']; k=task['k'];label=f"{j['rule'].upper()}{j['nodes']}"
+    if k is None:
+        return f"{label} setup | {elapsed:.0f}s (preparing)"
+    f=j['directory']/f"{j['tag']}_node{k}_progress.json"
+    try:
+        p=json.loads(f.read_text())
+        if p.get('pid')!=task['proc'].pid or p.get('t',0)<task['launched']:
+            raise ValueError('stale progress')
+        frac=max(0.,min(1.,p['done']/p['total'])) if p['total'] else 0.
+        rate=float(p.get('rate',float('nan')))
+        speed=f'{rate:.1f} steps/s, {1000/rate:.0f} ms/step' if np.isfinite(rate) and rate>0 else 'warming up'
+        eta=f", ETA {(p['total']-p['done'])/rate/60:.1f} min" if np.isfinite(rate) and rate>0 else ''
+        stale=f", last update {now-p['t']:.0f}s ago" if now-p['t']>90 else ''
+        return f"{label} λ{k}: {100*frac:.1f}% | {speed}{eta}{stale}"
+    except (OSError,ValueError,KeyError,TypeError,ZeroDivisionError):
+        return f"{label} λ{k}: starting/model loading ({elapsed:.0f}s)"
+
+
 def cell_size(oxygen, hper):
     """Represent exact composition on a cubic bcc starting lattice (2*n^3 O)."""
     if oxygen < 1 or not np.isfinite(hper) or not 2 <= hper <= 7:
@@ -125,12 +147,12 @@ def main():
         elif j['stage']==0:j['stage']=1;prepare(j)
         else:j['status']='done'
     def terminal_lines():
-        lines=[f'Liquid H{args.hper:g}O: {args.oxygen} O + {hydrogen} H = {args.oxygen+hydrogen} atoms | {args.P:g} GPa / {args.T:g} K | {args.ps:g} ps/lambda | {len(gpus)} GPUs, {args.per_gpu} slots/GPU',
+        lines=[f'{time.strftime("%H:%M:%S")} | Liquid H{args.hper:g}O: {args.oxygen} O + {hydrogen} H = {args.oxygen+hydrogen} atoms | {args.P:g} GPa / {args.T:g} K | {args.ps:g} ps/lambda | {len(gpus)} GPUs, {args.per_gpu} slots/GPU',
                'Shared lambda queue; log files: '+str(root)]
         for gpu in gpus:
             tasks=[t for t in active if t['gpu']==gpu]
-            labels=[f'{t["job"]["rule"]}{t["job"]["nodes"]}/'+('setup' if t['k'] is None else f'λ{t["k"]}') for t in tasks]
-            lines.append(f'GPU {gpu}: '+(', '.join(labels) if labels else 'idle'))
+            lines.append(f'GPU {gpu}: '+(f'{len(tasks)} running' if tasks else 'idle'))
+            for task in tasks: lines.append('  '+worker_status(task))
         for j in jobs:
             fraction=0.;done=0
             if 'nodes' in j:
@@ -161,7 +183,7 @@ def main():
                 t['log']=j['directory']/f'{stamp}_{serial}_{j["rule"]}{j["nodes"]}_{label}.log'
                 t['fh']=t['log'].open('a');te=env.copy();te['CUDA_VISIBLE_DEVICES']=gpu
                 cmd=j['cmd']+(['--stage0'] if t['k'] is None else ['--node',str(t['k'])])
-                t.update(gpu=gpu,proc=subprocess.Popen(cmd,env=te,stdout=t['fh'],stderr=subprocess.STDOUT,start_new_session=True));active.append(t)
+                t.update(gpu=gpu,launched=time.time(),proc=subprocess.Popen(cmd,env=te,stdout=t['fh'],stderr=subprocess.STDOUT,start_new_session=True));active.append(t)
             for t in list(active):
                 rc=t['proc'].poll()
                 if rc is None:continue
@@ -176,7 +198,7 @@ def main():
                 if j['status']=='sampling' and not any(x['job'] is j for x in list(pending)+active):finish(j)
             lines=terminal_lines()
             if sys.stdout.isatty():
-                if previous:sys.stdout.write(f'\033[{previous}A')
+                if previous:sys.stdout.write(f'\033[{previous}A\033[J')
                 for line in lines:sys.stdout.write('\r\033[2K'+line+'\n')
                 sys.stdout.flush();previous=len(lines)
             elif time.time()-last_print>60 or not(pending or active):print('\n'.join(lines),flush=True);last_print=time.time()

@@ -39,3 +39,15 @@ def test_exact_mixture_cell_size():
         q.cell_size(54,2.25)
     with pytest.raises(ValueError,match='2\\*n\\^3'):
         q.cell_size(100,2)
+
+
+def test_worker_status_displays_rate_and_ignores_stale_process(tmp_path):
+    from types import SimpleNamespace
+    job=dict(rule='gl',nodes=8,tag='run',directory=tmp_path)
+    task=dict(job=job,k=3,proc=SimpleNamespace(pid=42),launched=100)
+    f=tmp_path/'run_node3_progress.json'
+    f.write_text(json.dumps(dict(pid=42,t=110,done=200,total=1000,rate=20)))
+    s=q.worker_status(task,now=120)
+    assert 'GL8 λ3' in s and '20.0%' in s and '20.0 steps/s' in s and '50 ms/step' in s
+    f.write_text(json.dumps(dict(pid=41,t=110,done=200,total=1000,rate=20)))
+    assert 'starting/model loading' in q.worker_status(task,now=120)

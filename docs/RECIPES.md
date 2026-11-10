@@ -401,3 +401,44 @@ and submit after resolving missing points. Measure the model pressure at each
 volume and refine if needed. Since the launcher supplies explicit volume,
 bulk modulus defaults to NaN; second-order pressure corrections are not
 computed automatically. A full-potential pressure/phase check is needed.
+
+### One-GPU Young EOS arrays for H2O, H3O and H
+
+`young_eos_campaign.py --submit` submits 9 jobs: H2O, H3O and 729-H at 7000,
+5000 and 3000 K. Each uses the final `ft_mfinkc_cont` potential, one Slurm GPU,
+four MD workers, 16 volume points, and the established `eos_live.sh` defaults
+(0.25 ps 9000 K premelt + 0.25 ps equilibration + 0.75 ps production for
+mixtures; H has 0.2 ps equilibration + 0.5 ps production). Four jobs run at
+once by default; `--concurrency`, `--time`, `--nv` are adjustable. Model EOS
+volume points span broad per-composition ranges; check actual pressure coverage,
+phase, temperature and drift before taking interpolated volumes as TDI inputs.
+
+Submit from Young login, once per desired array:
+
+```bash
+cd /lustre/scratch/mmm0037/H3O && git pull --ff-only origin gpt/youthful-jolly-review && "$HOME/grace-venv/bin/python" mlp_pipeline/young_eos_campaign.py --submit
+```
+
+Repeat --submit creates another array; per-system locks prevent concurrent
+writers. Outputs remain under `runs/eos_live/ft_mfinkc_cont_*`; rows at already
+saved volumes are skipped. Snapshot code, manifest, submission response and
+Slurm logs are under `runs/eos_campaigns/<timestamp>/`. EOS child processes
+inherit the actual allocated CUDA device token. Models sharing the same path
+are not automatically fingerprinted; do not replace weights underneath saved
+results. Local tests check preflight/filtering, shell syntax and an EOS
+already-complete restart, but the Slurm/GPU execution awaits the real cluster.
+
+To inventory final-model EOS outputs and write **candidate** starting volumes
+with no extrapolation, on the machine with those EOS files:
+
+```bash
+"$HOME/grace-venv/bin/python" mlp_pipeline/eos_volume_table.py runs/eos_live --out runs/liquid_eos_candidate_volumes.csv
+```
+
+It uses only bracketing pressures with finite values and basic phase, temperature,
+close-contact and drift screens. Check the source rows and plots; interpolation
+and short trajectories do not prove a phase. After review,
+`young_liquid_campaign.py --volumes runs/liquid_eos_candidate_volumes.csv`
+uses those candidate V/atom values for coverage. Those EOS volumes can supplement
+or override the DFT-derived lookup; they are not DFT validation. The default
+CSV filter selects directories named `ft_mfinkc_cont_*` and records sources.

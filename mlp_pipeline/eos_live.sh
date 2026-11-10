@@ -13,7 +13,7 @@
 # a dense braille V(P) plot of every composition against its DFT EOS. At the end, per composition: table (P, P_DFT, dP %, T, D_O, D_H, O lattice, closest contacts, flags FROZE / COLLAPSE /
 # CLOSE-HH / T-off / P-drift); all compositions on one figure: python3 mlp_pipeline/plot_eos_all.py --T <T>.
 # Outputs: runs/eos_live/<model>_<comp>_<T>K_<N>at/ (logs, 17_eos_md folders, <tag>.csv). Volumes already in <tag>.csv are skipped. Ctrl-C kills the running MD processes.
-set -u; cd "$(dirname "$0")/.."; PY=${PY:-$SCRATCH/grace-env/bin/python}; export PYTHONPATH=$PWD/mlp_pipeline TF_FORCE_GPU_ALLOW_GROWTH=true TF_CPP_MIN_LOG_LEVEL=2
+set -u; cd "${EOS_REPO_ROOT:-$(dirname "$0")/..}"; PY=${PY:-$SCRATCH/grace-env/bin/python}; export PYTHONPATH="${EOS_CODE_DIR:-$PWD/mlp_pipeline}" TF_FORCE_GPU_ALLOW_GROWTH=true TF_CPP_MIN_LOG_LEVEL=2
 if [ -z "${MODEL:-}" ]; then for r in mfin_f_lr1e-2_e50 mfin_f_lr1e-2_e50_F200; do [ -e runs/grace/ft_$r/seed/1/final_model/saved_model.pb ] && { MODEL=grace-ft:runs/grace/ft_$r; break; }; done; fi
 [ -n "${MODEL:-}" ] || { echo "set MODEL=grace-ft:runs/grace/ft_<run>"; exit 1; }
 NG=${NGPU:-$(nvidia-smi -L 2>/dev/null | wc -l)}; [ "$NG" -ge 1 ] || { echo "no GPU visible"; exit 1; }
@@ -21,6 +21,9 @@ exec $PY - "$MODEL" "$NG" <<'EOF'
 import ast, csv, math, os, re, shutil, signal, subprocess, sys, time
 import numpy as np
 MODEL, NG = sys.argv[1], int(sys.argv[2]); E = os.environ.get
+GPU_IDS = E("CUDA_VISIBLE_DEVICES", "").split(",") if E("CUDA_VISIBLE_DEVICES") else list(map(str, range(NG)))
+if len(GPU_IDS) < NG: sys.exit("NGPU exceeds CUDA_VISIBLE_DEVICES")
+CODE_DIR = E("EOS_CODE_DIR", "mlp_pipeline")
 T = int(float(E("T", "7000"))); NV = int(E("NV", "16")); PER = int(E("PER_GPU", "4")); REF = float(E("REFRESH", "10")); PM_T = E("PM_T", "9000")
 COMPS = E("COMP", "h2o").split(); HPER = {"h": 0.0, "h2o": 2.0, "h2.25": 2.25, "h3o": 3.0, "h5o": 5.0, "h7o": 7.0}
 NAME = {"h2o": "H2O", "h": "H", "h2.25": "H2.25O", "h3o": "H3O", "h5o": "H5O", "h7o": "H7O"}
@@ -72,8 +75,10 @@ for c in COMPS:
         if v in done_v: continue
         steps = (pm + eq + ps) * 2000
         jobs.append(dict(comp=c, k=k, vpa=v, log=os.path.join(D, f"log_{k}.txt"), cost=nat * steps * (0.5 + 4.0 / v), state="queued", pid=None, gpu=None, res=None,
-                         cmd=[sys.executable, "mlp_pipeline/17_eos_md.py", MODEL] + sysargs + ["--T", str(T), "--vpa", f"{v}", "--equil-ps", str(eq), "--ps", str(ps), "--report-fs", "50", "--tag", tag, "--outdir", D]))
-if not jobs: sys.exit("nothing to run (all volumes done)")
+                         cmd=[sys.executable, os.path.join(CODE_DIR, "17_eos_md.py"), MODEL] + sysargs + ["--T", str(T), "--vpa", f"{v}", "--equil-ps", str(eq), "--ps", str(ps), "--report-fs", "50", "--tag", tag, "--outdir", D]))
+if not jobs:
+    print("nothing to run (all volumes done)")
+    sys.exit(0)
 jobs.sort(key=lambda j: -j["cost"])
 print(f"{len(jobs)} jobs queued on {NG} GPU x {PER} slots, most expensive first; model {MODEL}", flush=True)
 procs = {}
@@ -94,7 +99,7 @@ def launch():
         free = [g for g in range(NG) if cnt[g] < PER]
         if not free: break
         g = min(free, key=lambda g: (load[g], cnt[g]))
-        p = subprocess.Popen(j["cmd"], stdout=open(j["log"], "w"), stderr=subprocess.STDOUT, env=dict(os.environ, CUDA_VISIBLE_DEVICES=str(g)))
+        p = subprocess.Popen(j["cmd"], stdout=open(j["log"], "w"), stderr=subprocess.STDOUT, env=dict(os.environ, CUDA_VISIBLE_DEVICES=GPU_IDS[g]))
         procs[p.pid] = p; j.update(state="running", pid=p.pid, gpu=g); load[g] += j["cost"]; cnt[g] += 1
 
 STEP = re.compile(r"step (\d+)/(\d+)\s+\[(.*?), (\d+) pts\]\s+T (\d+) K\s+P ([-\d.]+) \+- ([-\w.]+) GPa\s+\(now T (\d+) P ([-\d.]+)\)\s+(\d+) ms/step")
@@ -217,4 +222,6 @@ for j in jobs:
     if j["res"]: by.setdefault(j["gpu"], []).append(C[j["comp"]]["nat"] * 1000.0 / j["res"]["ms_per_step"])
 print("MD speed per run (atom-steps/s, mean over the runs on each GPU, with PER_GPU sharing it): " + ", ".join(f"GPU{g}: {sum(v) / len(v) / 1000:.1f}k x {PER}" for g, v in sorted(by.items())))
 print(f"all compositions on one figure: python3 mlp_pipeline/plot_eos_all.py --T {T} --model {mname}")
+if any(j["state"] == "failed" for j in jobs):
+    sys.exit("One or more EOS volumes failed; inspect the listed logs and rerun to resume.")
 EOF

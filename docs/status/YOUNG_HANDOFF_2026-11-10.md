@@ -73,3 +73,19 @@ Young A100 benchmarks already favour **four lambda processes per GPU** (old ft_m
 2. Complete phase/convergence analysis of `tdi_final` and inspect `tdi_qtest`; inventory finished EOS results and pending jobs.
 3. Adapt cluster submission deliberately: **run.sh batch submission still hardcodes Perlmutter**. Updating Young launcher model defaults did not make run.sh cluster-aware. Several old Young arrays still hardcode cell sizes and parallelism; review them before a new campaign.
 4. Use explicit model-specific output directories for new TDI (OUTDIR, or FBOUT in the fcc/bcc array), matched reference conditions and suitable liquid cell sizes. Start with the missing liquid H2O/reference checks at 500 GPa / 5000 K, then expand the composition grid.
+
+## Further user-reported observations
+
+Perlmutter `runs/eos_live/` lists both parent-model `ft_mfin_f_lr1e-2_e50`
+and final-model `ft_mfinkc_cont` folders. For the final model the listing
+includes H2O/H3O/H at 7000 K and several compositions at 1000/2000 K; the
+listing alone does not establish how many volume rows finished or which curve
+produced the user-provided image. The closing Claude excerpt records the user's
+intent to cancel pending EOS jobs, not confirmation that it happened.
+
+Young's 64-O/192-atom TDI run later reported ~7.4 MD steps/s per worker × 4
+workers = ~30 aggregate steps/s **per GPU** (reported live), after warming up.
+This is comparable to the documented fcc H2O 324-atom/F10 ~23.8 steps/s per
+GPU with four workers; earlier low reported speeds were affected by the old
+heating/progress timer. These are different models, cells and conditions, so
+not a controlled scaling comparison.

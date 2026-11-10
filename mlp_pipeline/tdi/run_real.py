@@ -149,7 +149,7 @@ def check_stage0_compatible(c, kE):
         if isinstance(x, (int, float)) and isinstance(y, (int, float)) and not isinstance(x, bool):
             return abs(float(x) - float(y)) > 1e-9 * max(1.0, abs(float(y)))
         return x != y
-    bad = [f"{k} {A[k]!r} -> {now[k]!r}" for k in ("dt", "every", "chunk_ps", "model", "hper", "nghost", "natoms", "nrep", "tau") if k in A and differ(A[k], now[k])]
+    bad = [f"{k} {A[k]!r} -> {now[k]!r}" for k in ("dt", "every", "chunk_ps", "model", "hper", "nghost", "natoms", "nrep", "tau", "liquid_start") if k in A and differ(A[k], now[k])]
     bad += [f"{k} {old[k]!r} -> {v!r}" for k, v in (("T", a.T), ("P_target", a.P), ("V", c["V"])) if k in old and differ(old[k], v)]
     if kE is not None and "kE" in old and differ(old["kE"], kE):
         bad.append(f"Einstein k {old['kE']!r} -> {kE!r}")
@@ -241,9 +241,9 @@ def banner(c):
                  f"system      : {nOr} O + {c['nH']} H = {c['N']} atoms, {'liquid H%gO' % a.hper if a.phase == 'liquid' else 'pure hydrogen fluid'}, start lattice that should melt (check the displacement column); cubic cell {L[0]:.3f} A, V = {c['V']:.1f} A^3 = {c['vpa']:.4f} A^3/atom",
                  f"conditions  : T = {a.T:.0f} K (kT = {c['kt'] * 1e3:.1f} meV), NVT, target pressure {a.P:.0f} GPa -> G = F + P_target V (per H atom below)",
                  f"potential   : {a.model} (classical nuclei)",
-                 "path        : U(lam) = lam U_MLP ; reference (lam=0) = ideal gas of N indistinguishable H atoms: F_ref = -kT N ln V + kinetic terms + kT ln N! (analytic); F = F_ref + integral_0^1 <U_MLP>_lam dlam",
+                 "path        : U(lam) = lam U_MLP ; reference (lam=0) = ideal gas, indistinguishable within each species: F_ref includes -kT N ln V, kinetic terms and species factorials; F = F_ref + integral_0^1 <U_MLP>_lam dlam",
                  f"dynamics    : Langevin, friction 1/{a.tau:.0f} fs, dt {a.dt} fs; no centre-of-mass constraint",
-                 f"each lambda : {a.equil_ps} ps equilibration + {a.ps} ps production, reports every {a.chunk_ps} ps; the 'rms |u|' in the logs is the displacement of H from its start (liquid if it grows beyond the lattice spacing)",
+                 f"each lambda : {a.equil_ps} ps equilibration + {a.ps} ps production, reports every {a.chunk_ps} ps; use saved oxygen MSD and full-potential MD to check liquid state",
                  f"quadrature  : Gauss-Legendre in x on (0,1), lambda = x^{a.power:g}, {a.nodes} lambda values", "   index  lambda      weight"]
         lines += [f"   {k:4d}   {l:.3e}   {ww:.3e}" for k, (l, ww) in enumerate(zip(lam, w))] + ["=" * 100]
         print("\n".join(lines), flush=True); return
@@ -386,7 +386,7 @@ def build_h(vpa, nrep):
 
 def make_tag(a):
     """file-name stem of a run (before setup() fills in the default nrep): the launcher asks for it with --print-tag, so the shell and the files always agree"""
-    return a.tag or f"{a.phase}_{a.P:.0f}GPa_{a.T:.0f}K" + (f"_n{a.nghost}" + {"bcc": "_bcc", "H": "_Hhost" + (f"_N{a.natoms}" if a.natoms else "")}.get(getattr(a, "host_phase", "fcc"), "") if a.phase == "insert" else "") + (f"_h{a.hper:g}o" if (a.hper != 2.0 or a.phase == "liquid") and a.phase != "H" else "") + (f"_N{a.natoms}" if a.phase == "H" and a.natoms else "") + (f"_rep{a.nrep}" if a.nrep and a.phase in ("bcc", "fcc", "liquid") else "")
+    return a.tag or f"{a.phase}_{a.P:.0f}GPa_{a.T:.0f}K" + (f"_n{a.nghost}" + {"bcc": "_bcc", "H": "_Hhost" + (f"_N{a.natoms}" if a.natoms else "")}.get(getattr(a, "host_phase", "fcc"), "") if a.phase == "insert" else "") + (f"_h{a.hper:g}o" if (a.hper != 2.0 or a.phase == "liquid") and a.phase != "H" else "") + (f"_N{a.natoms}" if a.phase == "H" and a.natoms else "") + (f"_rep{a.nrep}" if a.nrep and a.phase in ("bcc", "fcc", "liquid") else "") + ("_startbcc" if a.phase == "liquid" and getattr(a, "liquid_start", "fcc") == "bcc" else "")
 
 
 def setup(a):
@@ -408,7 +408,7 @@ def setup(a):
         at0 = add_ghosts(host, a.nghost, a.seed + 7)
     elif a.phase == "liquid":   # fluid H(2+n)O: fcc start (32 O for nrep 2) that should melt; volume from the DFT hull EOS
         a.nrep = a.nrep or 2
-        at0 = eos.build("fcc", vpa, a.nrep, a.seed, a.hper)
+        at0 = eos.build(a.liquid_start, vpa, a.nrep, a.seed, a.hper)
     else:
         a.nrep = a.nrep or eos.CELL[a.phase][2]
         at0 = eos.build(a.phase, vpa, a.nrep, a.seed, a.hper)
@@ -737,6 +737,7 @@ def make_parser():
     ap.add_argument("--from-dft", default=None); ap.add_argument("--vpa", type=float, default=None, help="A^3/atom (instead of --from-dft)")
     ap.add_argument("--nrep", type=int, default=None); ap.add_argument("--nodes", type=int, default=8); ap.add_argument("--power", type=float, default=4.0)
     ap.add_argument("--ps", type=float, default=4.0, help="production per lambda node"); ap.add_argument("--chunk-ps", type=float, default=0.5)
+    ap.add_argument("--liquid-start", choices=["fcc", "bcc"], default="fcc", help="initial oxygen lattice before liquid premelting; bcc nrep=4 gives 128 O / 384 atoms for H2O")
     ap.add_argument("--hot-ps", type=float, default=0.0, help="liquid phase: first heat every lambda to --hot-T for this long so the lattice start melts, then equilibrate at T"); ap.add_argument("--hot-T", type=float, default=12000.0)
     ap.add_argument("--lock-stale-min", type=float, default=30.0, help="a lambda-node lock file not touched for this long is taken over (see acquire_lock; a live holder touches it every minute)")
     ap.add_argument("--bulk-gpa", type=float, default=None, help="bulk modulus (GPa) for the pressure corrections; default: from the DFT EOS (required for insert with --vpa)")

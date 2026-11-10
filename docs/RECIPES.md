@@ -196,3 +196,48 @@ reusable across these GK rules, but the current same-directory continuation
 requires preservation of the entire existing node prefix and does not remap
 that isolated shared trajectory into a new family. Do not manually copy node
 files by their integer indices; those indices denote different lambda values.
+
+### Four-GPU Young H2O quadrature study, 384 atoms
+
+On the Young login node, request an interactive GPU allocation (check local
+partition availability):
+
+```bash
+srun -p intergpu --gres=gpu:4 -c 32 --mem=120G --time=2:00:00 --pty bash
+```
+
+Inside it:
+
+```bash
+cd /lustre/scratch/mmm0037/H3O &&
+git pull --ff-only origin gpt/youthful-jolly-review &&
+"$HOME/grace-venv/bin/python" mlp_pipeline/young_quad_sweep.py --ps 6.25
+```
+
+One GPU per independent family (GL4→GK9, GL8→GK17, GL10→GK21, GL15→GK31),
+four lambda processes per GPU. Default 350 GPa / 7000 K H2O: **128 O + 256 H =
+384 atoms**, bcc NREP=4 initial lattice, heated at 12000 K for 0.5 ps and
+equilibrated at 7000 K for 0.5 ps before production at each lambda. This initial
+lattice is for liquid preparation, not a bcc solid free-energy calculation.
+`--P`, `--T`, `--root`, `--model`, `--ps` are available. Choose a distinct --root
+for different conditions; a saved campaign configuration guards against mixing.
+
+Interactive stdout is a four-row updating dashboard (no whole-screen clearing);
+non-terminal output emits periodic snapshots. Complete launcher/node logs and
+RUN_DIARY files live under `runs/quad384_350GPa_7000K/gl<N>_gk<M>/`.
+Slurm errors injected by the allocation can still disrupt terminal rendering;
+fix/filter the allocation's stderr separately rather than hiding model errors.
+The runner does not alter Slurm's GPU assignment: each child receives one ID
+from CUDA_VISIBLE_DEVICES, including UUID identifiers.
+
+Rerun the same command to resume interrupted sampling, or increase --ps to extend
+it. Existing samples at matching lambda indices/settings are kept; after a
+family reaches GK, restart skips its GL stage. Completed lambda processes still
+may load a model to verify/recover state but do not repeat the production MD.
+Nothing from the 96-atom pilot can be reused as 384-atom MD. Separate families
+repeat non-overlapping nodes; isolated common midpoints are not remapped.
+All 31-node work is not guaranteed to finish within two hours. Restart inside a
+new allocation if needed. Ctrl-C terminates child process groups; saved completed
+chunks can be resumed. Check exit status/logs and completion, then perform
+phase/convergence analysis. This new four-GPU runner has local geometry,
+quadrature and syntax checks; actual four-GPU GRACE throughput awaits Young.

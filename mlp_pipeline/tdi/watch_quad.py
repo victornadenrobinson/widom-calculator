@@ -7,6 +7,7 @@ from pathlib import Path
 import sys
 import time
 import numpy as np
+from quad_eta import estimate, format_eta
 
 
 def snapshot(root, now=None):
@@ -15,6 +16,8 @@ def snapshot(root, now=None):
            'GPU assignments unavailable in saved progress; worker IDs below are family and lambda.']
     dirs=sorted(root.glob('gl*_gk*'))
     if not dirs:return lines+['No family directories found.']
+    seconds,reason=estimate(root,now=now)
+    lines.append(format_eta(seconds,reason))
     for d in dirs:
         files=list(d.glob('*_stage0.json'))
         if len(files)!=1:

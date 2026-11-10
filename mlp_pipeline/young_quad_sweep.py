@@ -19,6 +19,7 @@ ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT/'mlp_pipeline'))
 from tdi.quadrature_plan import plan
 from tdi.analyze import rule_nodes
+from tdi.quad_eta import estimate, format_eta
 
 @lru_cache(maxsize=64)
 def lambda_grid(serialized_args):
@@ -161,6 +162,8 @@ def main():
     def terminal_lines():
         lines=[f'{time.strftime("%H:%M:%S")} | Liquid H{args.hper:g}O: {args.oxygen} O + {hydrogen} H = {args.oxygen+hydrogen} atoms | {args.P:g} GPa / {args.T:g} K | {args.ps:g} ps/lambda | {len(gpus)} GPUs, {args.per_gpu} slots/GPU',
                f'Shared lambda queue; {args.launch_delay:g}s between launches; log files: '+str(root)]
+        seconds, reason=estimate(root, directories=[j['directory'] for j in jobs])
+        lines.append(format_eta(seconds,reason))
         for gpu in gpus:
             tasks=[t for t in active if t['gpu']==gpu]
             lines.append(f'GPU {gpu}: '+(f'{len(tasks)} running' if tasks else 'idle'))

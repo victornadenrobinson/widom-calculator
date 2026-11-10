@@ -332,3 +332,17 @@ full and last-half free energies, and GK−GL with shared-node covariance includ
 (assuming independently sampled lambdas). Its five-block SEM may underestimate
 correlation, and this is not an independent proof of equilibration, identical
 weights, phase, or absence of systematic quadrature error.
+
+The adaptive runner and read-only `watch_quad.py` display a **provisional
+whole-campaign ETA** based on remaining MD work in every planned GK family and
+the sum of recent warmed-up worker rates. It includes the as-yet-unscheduled
+Kronrod lambdas. The estimate waits for multiple workers with at least two
+minutes and five percent of their current lambda done, and refuses to estimate
+when a worker's progress is stale. It assumes current aggregate throughput
+persists: it does not predict remaining compilation, startup delays, changes in
+GPU contention, dependency bottlenecks, final underfilled GPU tails, errors,
+or any extra sampling needed for convergence. Reassess it as measurements
+settle. The viewer uses all existing family directories in its supplied root;
+the runner estimates only the families selected for its invocation. Updating
+the viewer works for an already-running campaign; updating the parent dashboard
+requires a later restart because it executes the code loaded at launch.

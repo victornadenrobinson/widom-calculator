@@ -77,3 +77,27 @@ The 300-frame relabel cost 28.5 CPU node-hours (225 Gamma-centred + 75 MP points
 
 ## Earlier quadrature findings (old ft_m2 model; redo with the final model)
 From docs/CURRENT_ISSUES.md (2026-10-27/28): Gauss-Kronrod 10 -> 21 lambda moved the H2.25O crystal G by -14.1 meV/atom but H2O by only -1.4 (x13 amplification per added H: ~85 meV/H quadrature uncertainty of the crystal mixing value at 500 GPa / 6000 K); crystals that melt in free MD but are held by the springs show huge Kronrod - Gauss (-327 / -451 meV/atom: not valid solids); MBAR over the saved lambda series (`tdi/bar_lambda.py`) is a quadrature-free cross-check; the insertion runs' quadrature error (P3) was never measured. Suggested test with the final model: gk17 for fcc H2O, fcc H2.25O, liquid H2O and pure H at 500-600 GPa / 5000 K, one GPU each.
+
+## Young: current potential and first GPU check
+
+Young simulation launchers default to the explicit SavedModel export
+`grace-ft:runs/grace/ft_mfinkc_cont/seed/1/final_model`; `MODEL` overrides remain
+available. Historical analysis/replay scripts retain the model in their source
+metadata, and training/foundation-model comparison scripts retain their purpose.
+PWidom and proxy-fit wrappers explicitly pass the selected model (even with
+`--like`) and default to new `*_mfinkc_cont` output directories.
+For new TDI campaigns explicitly set `OUTDIR=runs/tdi_mfinkc_cont` (the fcc/bcc
+array uses `FBOUT`); old output directories are for continuing their original runs.
+
+On a Young GPU node, from the repo root:
+
+```bash
+PY="$HOME/grace-venv/bin/python"
+CUDA_VISIBLE_DEVICES=0 "$PY" mlp_pipeline/young_model_check.py
+```
+
+This reads the first `runs/valid_m.extxyz` frame and evaluates energy, forces and
+stress; it performs no MD and writes no results. Override `--frames` if needed.
+A passing check establishes model/environment compatibility, not accuracy or
+TDI convergence. Model weights are on the cluster and cannot be tested in the
+cloud checkout.

@@ -22,7 +22,7 @@ export TF_FORCE_GPU_ALLOW_GROWTH=true
 PLIST=(${PLIST:-300 400 500}); TLIST=(${TLIST:-4000 5000 6000 7000 8000}); I=${SLURM_ARRAY_TASK_ID:-0}
 PHASES=(bcc fcc); PH=${PHASES[$((I % 2))]}; P=${PLIST[$((I / 2))]}
 [ -n "$P" ] || { echo "no pressure for task $I"; exit 2; }
-MODEL=${MODEL:-grace-ft:runs/grace/ft_m2}; PS=${PS:-10}; PY=${PY:-$HOME/grace-venv/bin/python}
+MODEL=${MODEL:-grace-ft:runs/grace/ft_mfinkc_cont/seed/1/final_model}; PS=${PS:-10}; PY=${PY:-$HOME/grace-venv/bin/python}
 echo "== task $I: $PH at $P GPa, T = ${TLIST[*]} K, $PS ps each, concurrently on $(hostname) $(date)"
 mkdir -p runs/melt
 for T in "${TLIST[@]}"; do

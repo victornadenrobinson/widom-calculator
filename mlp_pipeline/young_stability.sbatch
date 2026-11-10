@@ -14,7 +14,7 @@
 #SBATCH --array=0-3
 #SBATCH --output=runs/slurm_%x_%A_%a.out
 [ -d mlp_pipeline ] || cd "${SLURM_SUBMIT_DIR:-$PWD}" || exit 1   # interactive jobs set SLURM_SUBMIT_DIR to where the job was started (often $HOME): keep a repo-root cwd
-MODEL=${MODEL:-grace-ft:runs/grace/ft_m2}
+MODEL=${MODEL:-grace-ft:runs/grace/ft_mfinkc_cont/seed/1/final_model}
 case ${SLURM_ARRAY_TASK_ID:-0} in
   0) PH=bcc; P=500 ;; 1) PH=fcc; P=500 ;; 2) PH=bcc; P=400 ;; 3) PH=fcc; P=400 ;;
 esac

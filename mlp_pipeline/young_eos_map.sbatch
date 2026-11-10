@@ -23,7 +23,7 @@ I=${SLURM_ARRAY_TASK_ID:-0}; read -r PH BR T H <<< "${TABLE[$I]}"
 [ -n "$T" ] || { echo "no table entry for array task $I"; exit 2; }
 export TF_FORCE_GPU_ALLOW_GROWTH=true H3O_RUNS=$PWD/runs
 SNAP=runs/code/eosmap_$(date +%Y%m%d_%H%M%S)_$$; mkdir -p $SNAP runs/eos_map/logs && cp -r mlp_pipeline $SNAP/ && CODE=$SNAP/mlp_pipeline
-PY=${PY:-$HOME/grace-venv/bin/python}; MODEL=${MODEL:-grace-ft:runs/grace/ft_m2}; PS=${PS:-3}; EQUIL=${EQUIL:-0.5}; BASE=map_${BR}_h${H}_${PH}_${T}K
+PY=${PY:-$HOME/grace-venv/bin/python}; MODEL=${MODEL:-grace-ft:runs/grace/ft_mfinkc_cont/seed/1/final_model}; PS=${PS:-3}; EQUIL=${EQUIL:-0.5}; BASE=map_${BR}_h${H}_${PH}_${T}K
 N=16; VPA=$(python3 -c "
 n = float('$H') - 2.0; s = 0.75 if '$PH' == 'H' else (3 + 0.62 * n) / (3 + n)
 v0 = 3.6 * s; print(' '.join('%.4f' % (v0 * 1.5 * (0.42 / 1.5) ** (k / ($N - 1))) for k in range($N)))")

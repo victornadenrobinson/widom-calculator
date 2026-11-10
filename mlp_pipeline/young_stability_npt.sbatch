@@ -23,4 +23,4 @@ I=${SLURM_ARRAY_TASK_ID:-0}; read -r H P T <<< "${TABLE[$I]}"
 export TF_FORCE_GPU_ALLOW_GROWTH=true
 SNAP=runs/code/stabnpt_$(date +%Y%m%d_%H%M%S)_$$; mkdir -p $SNAP && cp -r mlp_pipeline $SNAP/   # code snapshot: a git pull during the run cannot change it
 echo "== task $I: H${H}O at $P GPa, $T K, ${PS:=30} ps, nrep ${NREP:=4} on $(hostname) $(date) code $(git rev-parse --short HEAD)"
-${PY:-$HOME/grace-venv/bin/python} -u $SNAP/mlp_pipeline/tdi/stability_npt.py --hper $H --P $P --T $T --ps $PS --nrep $NREP --model ${MODEL:-grace-ft:runs/grace/ft_m2} -o runs/stability_npt; exit $?
+${PY:-$HOME/grace-venv/bin/python} -u $SNAP/mlp_pipeline/tdi/stability_npt.py --hper $H --P $P --T $T --ps $PS --nrep $NREP --model ${MODEL:-grace-ft:runs/grace/ft_mfinkc_cont/seed/1/final_model} -o runs/stability_npt; exit $?

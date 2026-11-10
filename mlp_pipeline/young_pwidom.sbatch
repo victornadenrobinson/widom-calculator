@@ -17,12 +17,13 @@
 #SBATCH --time=06:00:00
 #SBATCH --output=runs/slurm_%x_%j.out
 [ -d mlp_pipeline ] || cd "${SLURM_SUBMIT_DIR:-$PWD}" || exit 1
-PY=${PY:-~/grace-venv/bin/python}; PS=${PS:-4}; K=${K:-4000}; SEL=${SEL:-4}; NDEL=${NDEL:-4}; BATCH=${BATCH:-16}; PROXY=${PROXY:-docs/data/toyfit_t4.json}; OUT=${OUT:-runs/pwidom}
+PY=${PY:-~/grace-venv/bin/python}; PS=${PS:-4}; K=${K:-4000}; SEL=${SEL:-4}; NDEL=${NDEL:-4}; BATCH=${BATCH:-16}; PROXY=${PROXY:-docs/data/toyfit_t4.json}; OUT=${OUT:-runs/pwidom_mfinkc_cont}
+MODEL=${MODEL:-grace-ft:runs/grace/ft_mfinkc_cont/seed/1/final_model}
 ICE=${ICE:-runs/tdi/insert_500GPa_6000K_n1_stage0.json}; HFL=${HFL:-runs/tdi/insert_500GPa_6000K_n1_Hhost_stage0.json}
 for f in $ICE $HFL; do [ -f $f ] || { echo "missing $f (set ICE= / HFL= to an insertion run's stage0.json: ls runs/tdi*/insert_*_stage0.json)"; exit 1; }; done
 mkdir -p $OUT; echo "== pwidom on $(hostname) $(date) code $(git rev-parse --short HEAD): ice $ICE, pure H $HFL, PS $PS, K $K, proxy $PROXY"
 export OMP_NUM_THREADS=2 TF_CPP_MIN_LOG_LEVEL=2 TF_FORCE_GPU_ALLOW_GROWTH=true
-pw() { $PY mlp_pipeline/tdi/pwidom.py run --ps $PS --out $OUT --batch $BATCH "$@"; }
+pw() { $PY mlp_pipeline/tdi/pwidom.py run --model "$MODEL" --ps $PS --out $OUT --batch $BATCH "$@"; }
 pw --like $ICE --frames-only > $OUT/ice_md.log 2>&1 &
 pw --like $HFL --frames-only > $OUT/H_md.log 2>&1 &
 wait; tail -n 2 $OUT/ice_md.log $OUT/H_md.log

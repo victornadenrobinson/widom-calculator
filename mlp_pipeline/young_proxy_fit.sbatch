@@ -9,7 +9,7 @@
 # usage (repo root on Young):  sbatch mlp_pipeline/young_proxy_fit.sbatch
 #   or in an interactive GPU job (the #SBATCH lines are comments; label is resumable):  PROD=0 bash mlp_pipeline/young_proxy_fit.sbatch 2>&1 | tee runs/proxyfit.log
 #   knobs: SRC (glob, default "runs/pwidom*/pw_*_frames.npz") PER_SOURCE (10) NSEL (16) NUNI (8) TEMPER (2) K (4000) BATCH (16) BASE (docs/data/toyfit_t4.json) FIT (runs/pwidom_fit) OUT (runs/pwidom)
-#   ICE / HFL (stage0.json of the production insertion runs, only for PROD=1) HOLD_ICE (pwidom__pw_fcc_500GPa_6000K) HOLD_H (pwidom__pw_H_500GPa_6000K) MODEL (default: the model of $ICE) PROD (1) PY
+#   ICE / HFL (stage0.json of the production insertion runs, only for PROD=1) HOLD_ICE (pwidom__pw_fcc_500GPa_6000K) HOLD_H (pwidom__pw_H_500GPa_6000K) MODEL (default: mfinkc_cont) PROD (1) PY
 #SBATCH --job-name=proxyfit
 #SBATCH --partition=gpu
 #SBATCH --account=allusers
@@ -21,13 +21,12 @@
 #SBATCH --output=runs/slurm_%x_%j.out
 [ -d mlp_pipeline ] || cd "${SLURM_SUBMIT_DIR:-$PWD}" || exit 1
 PY=${PY:-~/grace-venv/bin/python}; PER_SOURCE=${PER_SOURCE:-10}; NSEL=${NSEL:-16}; NUNI=${NUNI:-8}; TEMPER=${TEMPER:-2}; K=${K:-4000}; BATCH=${BATCH:-16}
-BASE=${BASE:-docs/data/toyfit_t4.json}; FIT=${FIT:-runs/pwidom_fit}; OUT=${OUT:-runs/pwidom}; PROD=${PROD:-1}; SRC=${SRC:-"runs/pwidom*/pw_*_frames.npz"}
+BASE=${BASE:-docs/data/toyfit_t4.json}; FIT=${FIT:-runs/pwidom_fit_mfinkc_cont}; OUT=${OUT:-runs/pwidom_mfinkc_cont}; PROD=${PROD:-1}; SRC=${SRC:-"runs/pwidom*/pw_*_frames.npz"}
 ICE=${ICE:-runs/tdi/insert_500GPa_6000K_n1_stage0.json}; HFL=${HFL:-runs/tdi/insert_500GPa_6000K_n1_Hhost_stage0.json}
 HOLD_ICE=${HOLD_ICE:-pwidom__pw_fcc_500GPa_6000K}; HOLD_H=${HOLD_H:-pwidom__pw_H_500GPa_6000K}
 [ -f $BASE ] || { echo "missing $BASE"; exit 1; }
 if [ "$PROD" = 1 ]; then for f in $ICE $HFL; do [ -f $f ] || { echo "missing $f (set ICE= / HFL= to an insertion run's stage0.json: ls runs/tdi*/insert_*_stage0.json; PROD=0 needs only MODEL=)"; exit 1; }; done; fi
-if [ -z "$MODEL" ]; then [ -f $ICE ] || { echo "set MODEL=<model spec> (e.g. grace-ft:/path/to/model: the args.model field of the runs' stage0.json) or give ICE="; exit 1; }
-  MODEL=$($PY -c "import json;print(json.load(open('$ICE'))['args'].get('model','toyice'))"); fi
+MODEL=${MODEL:-grace-ft:runs/grace/ft_mfinkc_cont/seed/1/final_model}
 FILES=$(ls $SRC 2>/dev/null); [ -n "$FILES" ] || { echo "no frames files match $SRC"; exit 1; }
 mkdir -p $FIT $OUT; echo "== proxy refit on $(hostname) $(date) code $(git rev-parse --short HEAD): $(echo $FILES | wc -w) frames files, model $MODEL, base $BASE, $PER_SOURCE frames x ($NSEL selected + $NUNI uniform) probes per source, held out: $HOLD_ICE $HOLD_H"
 export OMP_NUM_THREADS=2 TF_CPP_MIN_LOG_LEVEL=2 TF_FORCE_GPU_ALLOW_GROWTH=true
@@ -39,7 +38,7 @@ echo "---- ice"; pf fit $FIT/*_probes.npz --base $BASE --skip pureH pw_H_ --hold
 echo "---- pure H"; pf fit $FIT/*_probes.npz --base $BASE --only pureH pw_H_ --hold $HOLD_H -o $FIT/proxy_H --plot 2>&1 | tee $FIT/fit_H.log
 [ "$PROD" = 1 ] || { echo "PROD=0: stopped after the fit; use --proxy $FIT/proxy_ice.json / proxy_H.json in pwidom.py"; exit 0; }
 # 3. production frames (cached in $OUT; the MD runs here only if they are missing): new and old proxy on the same frames, then dg
-pw() { $PY mlp_pipeline/tdi/pwidom.py run --out $OUT --batch $BATCH "$@"; }
+pw() { $PY mlp_pipeline/tdi/pwidom.py run --model "$MODEL" --out $OUT --batch $BATCH "$@"; }
 declare -A LIKE=([ice]=$ICE [H]=$HFL)
 for v in new old; do
   for h in ice H; do

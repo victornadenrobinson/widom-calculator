@@ -17,4 +17,4 @@
 export TF_FORCE_GPU_ALLOW_GROWTH=true
 PY=${PY:-$HOME/grace-venv/bin/python}
 echo "== h3o_static: P = ${PS:=300 400 450 500 600 700 800}, variants ${VARIANTS:=3 2.5}, parallel ${PAR:=7}, steps ${STEPS:=2000}, out ${OUT:=runs/h3o_static} ($(date))"
-$PY -u mlp_pipeline/h3o_static.py --P $PS --variants $VARIANTS --parallel $PAR --steps $STEPS -o $OUT ${REDO:+--redo}; exit $?
+$PY -u mlp_pipeline/h3o_static.py --model "${MODEL:-grace-ft:runs/grace/ft_mfinkc_cont/seed/1/final_model}" --P $PS --variants $VARIANTS --parallel $PAR --steps $STEPS -o $OUT ${REDO:+--redo}; exit $?

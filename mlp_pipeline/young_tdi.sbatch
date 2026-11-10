@@ -17,7 +17,7 @@
 #SBATCH --array=0-1
 #SBATCH --output=runs/slurm_%x_%A_%a.out
 [ -d mlp_pipeline ] || cd "${SLURM_SUBMIT_DIR:-$PWD}" || exit 1   # interactive jobs set SLURM_SUBMIT_DIR to where the job was started (often $HOME): keep a repo-root cwd
-MODEL=${MODEL:-grace-ft:runs/grace/ft_m2}; P=${P:-400}; PS=${PS:-4}; NODES=${NODES:-8}; PS1=${PS1:-3}; CHUNK=${CHUNK:-0.5}; EQUIL=${EQUIL:-1}; TAG=${TAG:-}
+MODEL=${MODEL:-grace-ft:runs/grace/ft_mfinkc_cont/seed/1/final_model}; P=${P:-400}; PS=${PS:-4}; NODES=${NODES:-8}; PS1=${PS1:-3}; CHUNK=${CHUNK:-0.5}; EQUIL=${EQUIL:-1}; TAG=${TAG:-}
 case ${SLURM_ARRAY_TASK_ID:-0} in 0) PH=bcc ;; 1) PH=fcc ;; esac
 export GRACE_UQ=1
 $HOME/grace-venv/bin/python -u mlp_pipeline/tdi/run_real.py $MODEL --phase $PH --P $P --T 3000 --from-dft inventory_binned.csv --ps $PS --nodes $NODES --power 4 --ps1 $PS1 --chunk-ps $CHUNK --equil-ps $EQUIL ${TAG:+--tag $TAG --outdir runs/tdi_test}

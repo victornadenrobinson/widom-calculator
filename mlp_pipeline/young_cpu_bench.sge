@@ -25,6 +25,6 @@ qstat -j $JOB_ID 2>/dev/null | grep -E "submission_time|project|account" | sed '
 lscpu 2>/dev/null | grep -E "Model name|^CPU\(s\)|Thread\(s\) per core|Socket|NUMA node\(s\)" | sed 's/^/   /'
 for C in ${CELLS:-insert H}; do
   echo; echo "######## cell $C ########"
-  $PY -u mlp_pipeline/cpu_bench.py --cell $C --calls ${CALLS:-20} ${LAYOUTS:+--layouts $LAYOUTS} --label "${BENCH_LABEL:-young}_$C"
+  $PY -u mlp_pipeline/cpu_bench.py --model "${MODEL:-grace-ft:runs/grace/ft_mfinkc_cont/seed/1/final_model}" --cell $C --calls ${CALLS:-20} ${LAYOUTS:+--layouts $LAYOUTS} --label "${BENCH_LABEL:-young}_$C"
 done
 echo; echo "== all results so far:"; $PY mlp_pipeline/cpu_bench.py --table runs/cpu_bench.jsonl; echo "== finished $(date)"

@@ -27,7 +27,7 @@ I=${SLURM_ARRAY_TASK_ID:-0}; read -r PH BR T H <<< "${TABLE[$I]}"
 [ -n "$T" ] || { echo "no table entry for array task $I"; exit 2; }
 export TF_FORCE_GPU_ALLOW_GROWTH=true H3O_RUNS=$PWD/runs
 SNAP=runs/code/eos_$(date +%Y%m%d_%H%M%S)_$$; mkdir -p $SNAP runs/eos_scan/logs && cp -r mlp_pipeline $SNAP/ && CODE=$SNAP/mlp_pipeline   # run from a snapshot: a git pull cannot change a running task
-PY=${PY:-$HOME/grace-venv/bin/python}; MODEL=${MODEL:-grace-ft:runs/grace/ft_m2}; PS=${PS:-3}; EQUIL=${EQUIL:-0.5}; BASE=eos_${BR}_h${H}_${PH}_${T}K
+PY=${PY:-$HOME/grace-venv/bin/python}; MODEL=${MODEL:-grace-ft:runs/grace/ft_mfinkc_cont/seed/1/final_model}; PS=${PS:-3}; EQUIL=${EQUIL:-0.5}; BASE=eos_${BR}_h${H}_${PH}_${T}K
 echo "== task $I: $PH $BR T=$T K H per O $H on $(hostname) $(date) code $(git rev-parse --short HEAD)"
 seq 0 11 | xargs -P ${NPAR:-6} -I{} bash -c "$PY -u $CODE/17_eos_md.py $MODEL --phase $PH --branch $BR --T $T --hper $H --from-dft inventory_binned.csv --P 100 200 300 400 500 600 700 800 900 1000 1100 1200 --ps $PS --equil-ps $EQUIL --dt 0.5 --only {} --tag ${BASE}_i{} --outdir runs/eos_scan > runs/eos_scan/logs/${BASE}_i{}.log 2>&1"
 echo "== done $(date)"; grep -h "^RESULT" runs/eos_scan/logs/${BASE}_i*.log | cut -c1-300

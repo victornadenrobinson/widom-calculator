@@ -29,7 +29,7 @@ main() {
 # refuse to run without a GPU (a login node would run TensorFlow on its CPUs for hours and slow everyone down): ALLOW_NOGPU=1 overrides, MODEL=lj (the harness test model) is allowed
 case "${MODEL:-grace}" in lj*) ;; *) [ -n "$ALLOW_NOGPU" ] || nvidia-smi -L >/dev/null 2>&1 || { echo "NO GPU visible on $(hostname): this looks like a login node. Run it inside a GPU job (srun / sbatch), or set ALLOW_NOGPU=1 to force it."; exit 1; } ;; esac
 SNAP=runs/code/$(date +%Y%m%d_%H%M%S)_$$; mkdir -p $SNAP && cp -r mlp_pipeline $SNAP/ && CODE=$SNAP/mlp_pipeline; export H3O_RUNS=$PWD/runs; export H3O_GIT=$(git rev-parse HEAD 2>/dev/null)$(git diff --quiet 2>/dev/null || echo "+local")
-PH=${1:?bcc, fcc, liquid, insert or H}; P=${P:-400}; T=${T:-3000}; HPER=${HPER:-2}; NGHOST=${NGHOST:-1}; MODEL=${MODEL:-grace-ft:runs/grace/ft_m2}; NODES=${NODES:-12}; POWER=${POWER:-4}; PS=${PS:-4}; PS1=${PS1:-1.5}
+PH=${1:?bcc, fcc, liquid, insert or H}; P=${P:-400}; T=${T:-3000}; HPER=${HPER:-2}; NGHOST=${NGHOST:-1}; MODEL=${MODEL:-grace-ft:runs/grace/ft_mfinkc_cont/seed/1/final_model}; NODES=${NODES:-12}; POWER=${POWER:-4}; PS=${PS:-4}; PS1=${PS1:-1.5}
 CHUNK=${CHUNK:-0.5}; EQUIL=${EQUIL:-1}; DT=${DT:-0.5}; NPAR=${NPAR:-4}; OUT=runs/tdi; [ -n "$TAG" ] && OUT=runs/tdi_test; [ -n "$OUTDIR" ] && OUT=$OUTDIR
 # default Einstein constants measured in earlier 3 ps lambda=1 runs at 400 GPa, 3000 K (bcc 12.182, fcc 22.842); K=0 runs the lambda=1 stage instead (re-measures k, pressure, structure)
 # Einstein constant k (eV/A^2): scaled guess unless K is given (k only sets the efficiency, not the result): measured 12.2 (bcc) / 22.0-22.8 (fcc) at 400 GPa 3000 K, 12.8 (bcc) at 5000 K, 7.9 (bcc) at 200 GPa; k ~ P^0.6.

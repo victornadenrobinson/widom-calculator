@@ -11,7 +11,7 @@
 #  2. collect.py: G versus simulation time of the insertion runs.
 #  3. short_range.py: energy cost of an extra proton at 0.1-1.2 A from host O and H atoms and at uniform random points (the lambda -> 0 integrand), on frames of
 #     an insertion run and of the H2.25O crystal: is the MLP repulsive at short range? ('NOT REPULSIVE AT SHORT RANGE' = the free energies are not trustworthy);
-#  4. pair_scan.py: isolated dimers H-H, O-H, O-O (MODEL, default grace-ft:runs/grace/ft_m2): monotonic core repulsion? soft core vs ZBL?
+#  4. pair_scan.py: isolated dimers H-H, O-H, O-O (MODEL, default grace-ft:runs/grace/ft_mfinkc_cont/seed/1/final_model): monotonic core repulsion? soft core vs ZBL?
 #     plus (step 3), for insertion runs, a Widom test-particle estimate of mu_ex and the insertion 'acceptance' (WIDOM points per frame) to compare with the TDI integral.
 # Every tag is looked up in runs/tdi_long and runs/tdi (both are reported when both exist).
 main() {
@@ -38,7 +38,7 @@ for t in $PROBE; do
   echo "-- $d/$t"; $PY -u mlp_pipeline/tdi/short_range.py $d $t --frames $FRAMES --dirs $DIRS --uniform $UNIFORM --widom $WIDOM 2>&1 | grep -vE "tensorflow|XLA|cuda|absl|E0000|W0000|I0000|ptxas|^$"
 done
 echo; echo "== 4. 1D pair scan of the model: isolated H-H, O-H, O-O dimers (repulsive by construction?) -> ${LOG%.txt}_pairs.pdf/.png"
-MODEL_SPEC=${MODEL:-grace-ft:runs/grace/ft_m2}; $PY -u mlp_pipeline/tdi/pair_scan.py $MODEL_SPEC -o ${LOG%.txt}_pairs 2>&1 | grep -vE "tensorflow|XLA|cuda|absl|E0000|W0000|I0000|ptxas|^$"
+MODEL_SPEC=${MODEL:-grace-ft:runs/grace/ft_mfinkc_cont/seed/1/final_model}; $PY -u mlp_pipeline/tdi/pair_scan.py $MODEL_SPEC -o ${LOG%.txt}_pairs 2>&1 | grep -vE "tensorflow|XLA|cuda|absl|E0000|W0000|I0000|ptxas|^$"
 echo; echo "== done $(date)"
 } 2>&1 | tee $LOG
 echo "wrote $LOG"

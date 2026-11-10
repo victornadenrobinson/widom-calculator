@@ -23,7 +23,7 @@ export TF_FORCE_GPU_ALLOW_GROWTH=true
 HLIST=(${HLIST:-2.1 2.25 2.5}); PLIST=(${PLIST:-100 200 300 400 500 600 700}); TLIST=(${TLIST:-3000 4000 5000 6000 7000 8000 9000 10000 11000})
 I=${SLURM_ARRAY_TASK_ID:-0}; H=${HLIST[$((I % ${#HLIST[@]}))]}; P=${PLIST[$((I / ${#HLIST[@]}))]}
 [ -n "$P" ] || { echo "no table entry for array task $I"; exit 2; }
-MODEL=${MODEL:-grace-ft:runs/grace/ft_m2}; PS=${PS:-10}; HOLD=${HOLD:-1.0}; PY=${PY:-$HOME/grace-venv/bin/python}; OUT=runs/melt_comp; mkdir -p $OUT
+MODEL=${MODEL:-grace-ft:runs/grace/ft_mfinkc_cont/seed/1/final_model}; PS=${PS:-10}; HOLD=${HOLD:-1.0}; PY=${PY:-$HOME/grace-venv/bin/python}; OUT=runs/melt_comp; mkdir -p $OUT
 SEED=${SEED:-0}; SUF=hold${HOLD}_s${SEED}
 echo "== task $I: fcc H$H O at $P GPa, T = ${TLIST[*]} K, hold O $HOLD ps, $PS ps each, concurrently on $(hostname) $(date) code $(git rev-parse --short HEAD)"
 for T in "${TLIST[@]}"; do

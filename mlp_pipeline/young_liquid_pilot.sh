@@ -14,10 +14,13 @@ export OUTDIR=${OUTDIR:-runs/tdi_mfinkc_pilot_350GPa_7000K}
 # Clear inherited settings that would change this deliberately small pilot or delete old files.
 unset FRESH ONLY0 ONLYNODES INIT VPA BULK K PREPHOLD PREPFREE ENGINE TAG RULE NGAUSS UQ GRACE_UQ
 export P=350 T=7000 HPER=2 NREP=2 NODES=4 NPAR=4 POWER=4 DT=0.5
-export PS=0.25 EQUIL=0.2 HOT=0.2 HOTT=12000 CHUNK=0.125 PS1=0.2
+export PS=${PS:-0.25} EQUIL=0.2 HOT=0.2 HOTT=12000 CHUNK=0.125 PS1=0.2
 export OMP_NUM_THREADS=1
 printf 'Liquid H2O pilot: 96 atoms, 350 GPa, 7000 K; 4 lambda values; GPU %s\n' "$CUDA_VISIBLE_DEVICES"
-echo "Output: $OUTDIR; 0.2 ps hot + 0.2 ps equilibration + 0.25 ps production per lambda."
+echo "Output: $OUTDIR; target $PS ps production per lambda (total, including saved samples)."
+mkdir -p "$OUTDIR"
+"$PY" mlp_pipeline/tdi/run_diary.py "$OUTDIR" start "$PS"
+trap 'rc=$?; "$PY" mlp_pipeline/tdi/run_diary.py "$OUTDIR" finish "$PS" "$rc"' EXIT
 bash mlp_pipeline/young_tdi_par.sh liquid
 "$PY" mlp_pipeline/tdi/liquid_check.py "$OUTDIR"
 echo 'Pilot finished. These short trajectories and four-point quadrature test execution, not converged free energies.'

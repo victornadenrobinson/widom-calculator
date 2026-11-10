@@ -114,3 +114,17 @@ includes model startup; no runtime guarantee. Output defaults to
 `liquid_check.py` (oxygen MSD/diffusion); short trajectories may not establish
 phase. Four lambda values and this sampling length are for execution testing,
 not production hull accuracy. Use a new OUTDIR for changed pilot settings.
+
+Extend this pilot in the same directory with
+`PS=1 bash mlp_pipeline/young_liquid_pilot.sh`: PS is the **total** production
+length per lambda, so a completed 0.25 ps pilot adds 0.75 ps. `PS=1.25` adds
+1 ps to the original pilot. Settings, tag and directory stay fixed. Saved
+positions/momenta and samples are reused without reheating or equilibration.
+`RUN_DIARY.md` and `RUN_DIARY.jsonl` record each invocation, target, sample counts
+and exit code; finish checks the old sample prefixes are unchanged. An exit code
+alone does not establish convergence or that every lambda reached its target;
+inspect the final collection table. Do not run two extensions concurrently.
+The legacy TDI state does not store the thermostat RNG state: continuation is
+not bit-identical to an uninterrupted trajectory (unlike PWidom checkpoints).
+Restart observer cadence was fixed to avoid a duplicate checkpoint sample;
+CPU toy integration verified 20 samples extend to 40 with the old prefix intact.

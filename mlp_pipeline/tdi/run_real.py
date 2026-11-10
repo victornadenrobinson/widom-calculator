@@ -677,7 +677,9 @@ def run_node(c, st, k):
                 print(f"lambda {k}: saved state has {key} = {old!r} but this run has {key} = {now!r}: refusing to mix samples. Use FRESH=1 (deletes the old files) or move them away.", flush=True); sys.exit(6)
         r.at.positions[:] = z["pos"]; r.at.set_momenta(z["mom"], apply_constraint=False)
         r.series, r.tk, r.eful, r.espr = (list(z[x]) for x in ("series", "tk", "eful", "espr")); r.snaps = []
-        r.dyn.attach(r._rec, interval=a.every); r.started = True; done = len(r.series) // (per // a.every)
+        done = len(r.series) // (per // a.every)
+        r.dyn.nsteps = neq + done * per  # resume observer cadence; avoid recording the checkpoint again at step zero
+        r.dyn.attach(r._rec, interval=a.every); r.started = True
         pr = StepProgress(r.dyn, tot, base=neq + done * per, path=pf, info=dict(k=k, lam=l)); r.dyn.attach(pr, interval=1)
         print(f"lambda {k}: RESTART from {sf}: {done} of {nchunk} chunks done ({len(r.series)} samples), continuing", flush=True)
     else:

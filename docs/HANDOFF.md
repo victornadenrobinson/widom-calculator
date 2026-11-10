@@ -1,5 +1,7 @@
 # Handoff: current state (2026-11-06)
 
+> **2026-11-10 update:** see [Young migration and TDI handoff](status/YOUNG_HANDOFF_2026-11-10.md) for the current branch, transferred potential, user-reported Perlmutter TDI results, Claude closing-session notes and remaining cluster setup. The older plans below are retained as history.
+
 ## 0. Working rules
 The permanent rules (no cluster access, how to give files to the user, Perlmutter pitfalls, conventions, preferences) are in **CLAUDE.md** at the repo root (loaded automatically). This file is state only.
 - Branch `claude/youthful-brown-4qfaeg`; `main` = `7af01e4` (the branch is ~35 commits ahead; fast-forward only when the user agrees).

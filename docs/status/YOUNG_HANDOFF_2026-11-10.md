@@ -4,6 +4,10 @@
 
 The user supplied the closing excerpt of their [Claude session](https://claude.ai/code/cshk_01RSfmJQJ1YsEG9jGzMhLXHJSZQv4bhL31kf1yVNVgXzNi), beginning “the training and the DFT labels are done”. The link itself was inaccessible from the cloud environment. This note incorporates the supplied excerpt, subsequent user-pasted cluster output and current repository code. It does not claim to summarize the full Claude conversation. Older proposed work in `docs/HANDOFF.md` may already be superseded by its later updates or this note.
 
+## User preference: liquid cell geometry
+
+Use cubic simulation boxes for liquid work, including finite-size comparisons. For 64 O, use a 4×4×4 simple-cubic oxygen starting grid with well-separated hydrogen positions, then premelt and verify liquid equilibration. FCC 3×3×3 gives 108 O; BCC 4×4×4 gives 128 O. Avoid rectangular liquid starting cells unless the user requests them.
+
 ## Goal and working arrangement
 
 Prioritize liquid TDI across composition for the convex hull, with H2O melting and fcc–bcc TDI on Young GPUs. Use the k-point-corrected GRACE potential `mfinkc_cont`. Develop, test and push on `gpt/youthful-jolly-review` here; the user pulls and executes on the clusters. Give short, self-contained commands with the cluster/node, repository path and Python interpreter specified. No cluster access exists from this cloud checkout.

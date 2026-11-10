@@ -28,12 +28,15 @@ def test_default_liquid_tags_unchanged():
     assert make_tag(a)=='liquid_350GPa_7000K_h2o_rep2'
 
 
-def test_64_oxygen_rectangular_cell(tmp_path):
-    a=make_parser().parse_args(['toyice','--phase','liquid','--liquid-start','bcc',
-        '--nrep','4','--liquid-shape','4','4','2','--vpa','2.52',
-        '--T','7000','--P','350','--outdir',str(tmp_path)])
+def test_64_oxygen_cubic_cell_and_separation(tmp_path):
+    from ase.geometry import get_distances
+    a=make_parser().parse_args(['toyice','--phase','liquid','--liquid-start','sc',
+        '--nrep','4','--vpa','2.52','--T','7000','--P','350','--outdir',str(tmp_path)])
     c=setup(a);at=c['at0']
     assert len(at)==192 and (at.numbers==8).sum()==64
     assert np.isclose(at.get_volume()/len(at),2.52)
-    assert c['tag'].endswith('_rep4_startbcc_shape4x4x2')
-    assert np.isclose(at.cell.lengths()[0]/at.cell.lengths()[2],2)
+    assert c['tag'].endswith('_rep4_startsc')
+    assert np.allclose(at.cell.lengths(),at.cell.lengths()[0])
+    _,dist=get_distances(at.positions,cell=at.cell,pbc=True)
+    np.fill_diagonal(dist,np.inf)
+    assert dist.min()>0.75

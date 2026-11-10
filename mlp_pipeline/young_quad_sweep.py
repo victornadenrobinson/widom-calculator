@@ -71,7 +71,7 @@ def worker_status(task, now=None):
 
 
 def cell_size(oxygen, hper):
-    """Represent composition using available cubic FCC/BCC or 64-O rectangular BCC starts."""
+    """Represent composition using available cubic FCC, BCC or simple-cubic starting structures."""
     if oxygen < 1 or not np.isfinite(hper) or not 2 <= hper <= 7:
         raise ValueError('Use a positive oxygen count and H/O between 2 and 7 (available EOS coverage).')
     nrep = {32: 2, 64: 4, 108: 3}.get(oxygen, round((oxygen / 2) ** (1 / 3)))
@@ -108,10 +108,10 @@ def main():
     lock=(root/'sweep.lock').open('w')
     try:fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
     except BlockingIOError:ap.error('Another sweep is already using this root.')
-    liquid_start = 'fcc' if args.oxygen in (32,108) else 'bcc'
+    liquid_start = 'fcc' if args.oxygen in (32,108) else ('sc' if args.oxygen == 64 else 'bcc')
     config=dict(P=args.P,T=args.T,model=args.model,nrep=nrep,liquid_start=liquid_start,dt=.5,chunk_ps=.125,equil_ps=.5,hot_ps=.5)
     if args.hper != 2.: config['hper'] = args.hper
-    shape = (4,4,2) if args.oxygen == 64 else None
+    shape = None
     if shape: config['liquid_shape'] = list(shape)
     cf=root/'campaign.json'
     if cf.exists() and json.loads(cf.read_text())!=config:ap.error('Campaign settings differ; use a new --root.')
@@ -134,7 +134,7 @@ def main():
         if prev and prev.get('rule')=='gk':j['stage']=1
         requested=f'gl{j["n"]}' if j['stage']==0 else f'gk{2*j["n"]+1}'
         rule,nodes,ng=plan(prev,requested);j.update(rule=rule,nodes=nodes,ng=ng,status='stage0',stage_started=time.time())
-        j['tag']=f'liquid_{args.P:.0f}GPa_{args.T:.0f}K_h{args.hper:g}o_rep{nrep}' + ('_startbcc' if liquid_start == 'bcc' else '')
+        j['tag']=f'liquid_{args.P:.0f}GPa_{args.T:.0f}K_h{args.hper:g}o_rep{nrep}' + (f'_start{liquid_start}' if liquid_start != 'fcc' else '')
         if shape: j['tag'] += '_shape4x4x2'
         j['cmd']=[sys.executable,'-u',str(code/'tdi/run_real.py'),args.model,'--phase','liquid','--liquid-start',liquid_start,'--nrep',str(nrep),
                   '--P',str(args.P),'--T',str(args.T),'--hper',str(args.hper),'--nodes',str(nodes),'--rule',rule,'--ngauss',str(ng),

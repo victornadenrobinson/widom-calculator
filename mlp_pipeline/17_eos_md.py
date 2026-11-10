@@ -20,7 +20,7 @@ from ase.neighborlist import neighbor_list
 from common import out as outp, inp
 
 EV_A3_GPA = 160.21766
-CELL = {"bcc": (2, [(0, 0, 0), (.5, .5, .5)], 4), "fcc": (4, [(0, 0, 0), (.5, .5, 0), (.5, 0, .5), (0, .5, .5)], 3)}  # O per cell, basis, default repeats
+CELL = {"sc": (1, [(0, 0, 0)], 4), "bcc": (2, [(0, 0, 0), (.5, .5, .5)], 4), "fcc": (4, [(0, 0, 0), (.5, .5, 0), (.5, 0, .5), (0, .5, .5)], 3)}  # O per cell, basis, default repeats
 # close-packed O lattices in ONE orthohexagonal cell (a x sqrt3 a x 2 sqrt6 a, 12 O = 6 layers), so that hcp (ABABAB) and fcc (ABCABC, 'fccl') have the same atoms, cell and k-points-free finite-size error:
 # nrep = nx (default 4), ny = nrep // 2 -> 96 O for nrep 4. a = nearest-neighbour distance, fixed by the volume per atom (equal for both stackings; the DFT fcc EOS is used for both).
 LAYERED = {"hcp": "ABABAB", "fccl": "ABCABC"}; CELL.update({k: (12, None, 4) for k in LAYERED})
@@ -49,7 +49,7 @@ def build(phase, vpa, nrep, seed=0, hper=2.0, natoms=0):
         cells = int(np.prod(shape)); N = int(round((1 + hper) * nO_cell * cells))
         a = (N * vpa / cells) ** (1 / 3)
         O = Atoms("O" * (nO_cell * cells), scaled_positions=[((np.array(b) + (i, j, k)) / shape) for i in range(shape[0]) for j in range(shape[1]) for k in range(shape[2]) for b in basis],
-                  cell=a * shape, pbc=True); cut = a
+                  cell=a * shape, pbc=True); cut = a * (1.01 if phase == "sc" else 1.0)
     d = neighbor_list("d", O, cut)                     # shortest O-O distance = nearest neighbour
     dmin = d.min()
     i, j, D = neighbor_list("ijD", O, 1.1 * dmin)

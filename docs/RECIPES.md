@@ -254,8 +254,7 @@ quadrature and syntax checks; actual four-GPU GRACE throughput awaits Young.
 
 The adaptive quadrature runner accepts `--oxygen 128 --hper 2.25` for a
 128 O + 288 H = 416-atom H2.25O liquid. `--oxygen` counts oxygen atoms (and
-therefore H_xO formula units), not total atoms. The present cubic bcc start
-builder requires 2*n^3 oxygen atoms: 16, 54, 128, 250, ... . H/O times the
+therefore H_xO formula units), not total atoms. The cubic starting-cell options include 16, 32, 54, 64, 108, 128 and 250 O atoms. H/O times the
 oxygen count must give a whole number; otherwise the runner rejects it rather
 than silently rounding the composition. The available DFT hull EOS lookup
 covers H/O 2–7; intermediate compositions use interpolated volumes. Pure H
@@ -292,11 +291,10 @@ For future runner invocations the main dashboard also shows per-GPU worker
 families, startup times, progress and rates. Already-running runner processes
 continue to use the code they started with; pulling does not alter those workers.
 
-**Size update:** `--oxygen 64` now uses a 4×4×2 BCC start (64 O, 192 atoms
+**Size update:** `--oxygen 64` uses a 4×4×4 simple-cubic oxygen start (64 O, 192 atoms
 for H2O); `--oxygen 108` uses 3×3×3 FCC (108 O, 324 atoms for H2O), and
-`--oxygen 32` uses 2×2×2 FCC. The 64-O cell is rectangular (2:2:1), while
-128-O BCC and 108-O FCC starts are cubic: account for cell shape in finite-size
-interpretation. These are initial structures that must melt. Existing 128-O
+`--oxygen 32` uses 2×2×2 FCC. The 64-O simple-cubic, 128-O BCC and 108-O FCC starting cells are cubic;
+account for different starting lattices and test melting and equilibration. These are initial structures that must melt. Existing 128-O
 BCC campaign paths and tags are unchanged. New run directories get a colored
 new/resume/already-complete message in an interactive terminal; no automatic
 cleanup is performed. The existing stage0 and collected metadata are archived

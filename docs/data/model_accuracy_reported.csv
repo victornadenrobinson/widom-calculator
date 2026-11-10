@@ -1,0 +1,7 @@
+model,label,sd_cell_eV,energy_rmse_meV_atom,force_rmse_eV_A,stress_rmse_GPa,composition_min_meV_H,composition_max_meV_H,pair_meV_H,pair_status
+mn_f_lr1e-2_e50,Old data F10,0.91,8.2,0.27,1.96,-30,10,-170,not stated
+mfin_f_lr1e-2_e50,Final data F10,0.93,8.0,0.27,2.35,-37,3,,not yet scored in table
+mfin_f_lr1e-2_e50_F50,Final data F50,0.92,10.1,0.26,3.82,-51,33,-21,trained on pairs
+mfin_f_lr1e-2_e50_F200,Final data F200,0.96,10.7,0.26,3.80,41,77,8,trained on pairs
+mfinref_f_lr1e-2_e50_F200,Reference F200,0.99,10.7,0.26,3.52,-59,36,-30,held-out pairs
+mfinkc_cont,k-corrected continuation,0.89,7.0,,1.93,,,-63,Gamma labels; held-out status unconfirmed

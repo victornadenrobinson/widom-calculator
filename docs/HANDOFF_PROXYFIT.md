@@ -1,5 +1,12 @@
 # Handoff 2026-10-31: pwidom proxy refit, cluster logistics, review findings
 
+> Historical handoff: the jolly branch's proxy-fit changes, cluster scripts, and
+> this document were incorporated into main in commit `aa4ae6c` and are present
+> on `claude/youthful-brown-4qfaeg`. That newer branch also fixes the proxy-fit
+> diagnostics and makes probe seeds consistent across shards. Use the current
+> `docs/HANDOFF.md` for project status; the branch and cluster details below
+> describe the situation on 2026-10-31.
+
 For whoever continues this (another assistant or a person). Read `HANDOFF.md`, `PROJECT.md`, `docs/CURRENT_ISSUES.md` and `docs/MU_METHODS.md` for the project; this file covers the session of 2026-10-30/31 only.
 Branch with all of it: `claude/jolly-mccarthy-0zrnfe` (public repo `victornadenrobinson/H3O`; nothing merged to `main`, no PR opened). The user's own branch `claude/eloquent-hopper-kfjdei` on Young is separate (queue tooling); do not merge blindly, `pwidom.py` conflicts.
 

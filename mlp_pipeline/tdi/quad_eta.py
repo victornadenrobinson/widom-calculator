@@ -10,7 +10,7 @@ import json
 import numpy as np
 
 
-def estimate(root, now=None, directories=None):
+def estimate(root, now=None, directories=None, min_workers=2):
     now=time.time() if now is None else now
     directories=sorted(Path(root).glob('gl*_gk*')) if directories is None else list(directories)
     if not directories:return None, 'no families found'
@@ -41,10 +41,17 @@ def estimate(root, now=None, directories=None):
                 age=now-p.get('t',0)
                 if p.get('state')=='failed':failures.append(f'{d.name} λ{k}')
                 if p.get('state')=='running' and age<=120 and p.get('total',0)>0:
-                    progress=min(eq_steps+prod_steps,max(0,float(p.get('done',0))))
-                    remaining+=max(0,eq_steps+prod_steps-progress)+(hot_steps if progress==0 and not saved else 0)
+                    phase=p.get('phase','MD')
+                    if phase == 'heating':
+                        progress=min(hot_steps,max(0,float(p.get('done',0))))
+                        remaining+=max(0,hot_steps-progress)+eq_steps+prod_steps
+                        phase_total=max(hot_steps,1)
+                    else:
+                        progress=min(eq_steps+prod_steps,max(0,float(p.get('done',0))))
+                        remaining+=max(0,eq_steps+prod_steps-progress)+(hot_steps if progress==0 and not saved and phase=='MD' else 0)
+                        phase_total=eq_steps+prod_steps
                     rate=float(p.get('rate',float('nan')))
-                    if math.isfinite(rate) and rate>0 and now-p.get('t_start',now)>=120 and progress>=.05*(eq_steps+prod_steps):rates.append(rate)
+                    if math.isfinite(rate) and rate>0 and now-p.get('t_start',now)>=120 and progress>=.05*phase_total:rates.append(rate)
                 else:
                     if p.get('state')=='running' and age>120:stale+=1
                     remaining+=max(0,prod_steps-saved)+(0 if saved else eq_steps+hot_steps)
@@ -54,14 +61,14 @@ def estimate(root, now=None, directories=None):
     if failures:return None,'failed workers: '+', '.join(failures)
     if remaining<=1e-6:return 0.,'all planned MD samples recorded; final collection may remain'
     if stale:return None,f'{stale} stale running workers; check logs before trusting an ETA'
-    if len(rates)<2:return None,'waiting for at least two warmed-up worker rates (≥2 min, ≥5% progress)'
+    if len(rates)<min_workers:return None,f'waiting for {min_workers} warmed worker rate(s) (≥2 min, ≥5% of phase)'
     speed=sum(rates)
     return remaining/speed, f'{len(rates)} warmed workers, {speed:.1f} steps/s; assumes current aggregate throughput'
 
 
-def format_eta(seconds,reason):
-    if seconds is None:return 'Campaign ETA: unavailable — '+reason
-    if seconds==0:return 'Campaign ETA: MD complete — '+reason
+def format_eta(seconds,reason,label='Campaign ETA'):
+    if seconds is None:return label+': unavailable — '+reason
+    if seconds==0:return label+': MD complete — '+reason
     mins=seconds/60
     duration=f'{mins:.0f} min' if mins<120 else f'{mins/60:.1f} h'
-    return f'Campaign ETA: ~{duration} (provisional; {reason}; startup/tail not included)'
+    return f'{label}: ~{duration} (provisional; {reason}; startup/tail not included)'

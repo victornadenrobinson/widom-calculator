@@ -37,11 +37,13 @@ def snapshot(root, now=None):
                     elif np.isfinite(rate) and rate>0:
                         state=f'{100*fraction:.0f}%, {rate:.1f} steps/s, {1000/rate:.0f} ms/step'
                     else:state=f'{100*fraction:.0f}%, starting'
-                    parts.append(f'{rule.upper()}{nodes} λ{k}: {state}')
+                    parts.append(f'{rule.upper()}{nodes} λ{k} ({p.get("phase","MD")}): {state}')
                 except (OSError,ValueError,KeyError,TypeError,ZeroDivisionError):
                     if nf.exists() and len(np.load(nf,mmap_mode='r'))/per_ps>=target-1e-8:done+=1
                     else:parts.append(f'{rule.upper()}{nodes} λ{k}: waiting or loading')
+            secs,reason=estimate(root,now=now,directories=[d],min_workers=1)
             lines.append(f'{d.name}: {rule.upper()}{nodes} | {done}/{nodes} complete | target {target:g} ps')
+            lines.append('  '+format_eta(secs,reason,label='Family ETA'))
             lines.extend('  '+line for line in parts)
         except (ValueError,OSError,KeyError) as e:lines.append(f'{d.name}: metadata unavailable ({e})')
     return lines

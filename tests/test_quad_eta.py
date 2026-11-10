@@ -24,3 +24,14 @@ def test_missing_metadata_is_not_reported_as_done(tmp_path):
     (tmp_path/'gl8_gk17').mkdir()
     seconds,why=estimate(tmp_path,now=1000)
     assert seconds is None and 'metadata' in why
+
+
+def test_heating_progress_counts_remaining_heating_and_production(tmp_path):
+    d=tmp_path/'gl4_gk9';d.mkdir()
+    args=dict(nodes=4,dt=.5,every=2,ps=1.,equil_ps=.5,hot_ps=.5)
+    (d/'run_stage0.json').write_text(json.dumps(dict(args=args)))
+    for k in range(4):
+        (d/f'run_node{k}_progress.json').write_text(json.dumps(dict(state='running',phase='heating',t=995,t_start=700,done=500,total=1000,rate=10)))
+    seconds,why=estimate(tmp_path,now=1000)
+    assert seconds==pytest.approx((4*(500+1000+2000)+5*4000)/40)
+    assert '4 warmed workers' in why

@@ -63,10 +63,11 @@ def worker_status(task, now=None):
             raise ValueError('stale progress')
         frac=max(0.,min(1.,p['done']/p['total'])) if p['total'] else 0.
         rate=float(p.get('rate',float('nan')))
+        phase=p.get('phase','MD')
         speed=f'{rate:.1f} steps/s, {1000/rate:.0f} ms/step' if np.isfinite(rate) and rate>0 else 'warming up'
-        eta=f", ETA {(p['total']-p['done'])/rate/60:.1f} min" if np.isfinite(rate) and rate>0 else ''
+        eta=f", phase ETA {(p['total']-p['done'])/rate/60:.1f} min" if np.isfinite(rate) and rate>0 else ''
         stale=f", last update {now-p['t']:.0f}s ago" if now-p['t']>90 else ''
-        return f"{label} λ{k}: {100*frac:.1f}% | {speed}{eta}{stale}"
+        return f"{label} λ{k} ({phase}): {100*frac:.1f}% | {speed}{eta}{stale}"
     except (OSError,ValueError,KeyError,TypeError,ZeroDivisionError):
         return f"{label} λ{k}: starting/model loading ({elapsed:.0f}s)"
 
@@ -176,11 +177,16 @@ def main():
                     f=j['directory']/f'{j["tag"]}_node{k}_progress.json'
                     try:
                         p=json.loads(f.read_text())
-                        if p['t']>=j['stage_started']:fraction+=min(1.,p['done']/(2000*(args.ps+.5)))
+                        if p['t']>=j['stage_started']:
+                            phase=p.get('phase','MD');md_total=2000*(args.ps+1.0)
+                            measured=p['done'] if phase=='heating' else p['done']+1000
+                            fraction+=min(1.,measured/md_total)
                     except (ValueError,OSError,KeyError):pass
                 fraction/=j['nodes']
             bar='#'*int(fraction*25)+'-'*(25-int(fraction*25))
             lines.append(f'GL{j["n"]}→GK{2*j["n"]+1}: [{bar}] {100*fraction:5.1f}%  {j["status"]} ({done}/{j.get("nodes",0)} lambdas saved)')
+            seconds,reason=estimate(root,directories=[j['directory']],min_workers=1)
+            lines.append('  '+format_eta(seconds,reason,label='Family ETA'))
         return lines
     def stop(*_):raise KeyboardInterrupt
     signal.signal(signal.SIGTERM,stop)

@@ -346,3 +346,15 @@ settle. The viewer uses all existing family directories in its supplied root;
 the runner estimates only the families selected for its invocation. Updating
 the viewer works for an already-running campaign; updating the parent dashboard
 requires a later restart because it executes the code loaded at launch.
+
+Live progress separates **heating**, **equilibration** and **production**.
+Heating now has its own step observer; after heating, the MD rate window starts
+again when equilibration actually begins. Model loading/compilation remains
+outside the rate window when it occurs during initial warm-up; later
+recompilations or blocking I/O can still affect measured throughput. A worker's
+ETA is for its currently displayed phase. Campaign ETA estimates all selected
+families with recent aggregate rates; each family also has a rough ETA assuming
+its current share of GPU throughput persists. Queue dependencies, startup and
+changing GPU loads make both estimates provisional. `watch_quad.py` shows the
+same family estimates, including for an already-running campaign, but old
+workers cannot gain phase-aware timing until restarted with the newer code.

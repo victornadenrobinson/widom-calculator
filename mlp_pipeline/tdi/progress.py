@@ -26,6 +26,14 @@ class StepProgress:
         if path:
             self.write("running")
 
+    def reset_rate(self):
+        """Begin a fresh timing window when this dynamics object actually starts."""
+        now = time.time()
+        self.t_start = self.t_write = self.t_print = now
+        self.hist = deque([(now, self.done())])
+        if self.path:
+            self.write("running")
+
     def done(self):
         return self.base + self.dyn.nsteps - self.n0
 

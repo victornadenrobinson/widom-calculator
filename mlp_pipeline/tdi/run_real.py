@@ -71,10 +71,13 @@ class LambdaRun:
             P = self.pfn(at, T)
         return dict(t_ps=len(self.series) * self.every * self.dt / 1000, T_inst_K=T, U_MLP_eV=self.eful[-1], E_spring_eV=self.espr[-1], dUdl_eV=self.series[-1], P_MLP_GPa=P, u_rms_A=float(np.sqrt((u ** 2).sum(-1).mean())), u_max_A=float(np.linalg.norm(u, axis=1).max()))
 
-    def start(self):
+    def start(self, on_hot=None, on_equilibration=None):
         """equilibration (nothing recorded), then attach the recorder"""
         if self.hot:   # liquid at low T: heat to hot_T for hot_steps so that the lattice start melts (superheated crystal otherwise), then equilibrate at T as usual
-            Langevin(self.at, self.dt * units.fs, temperature_K=self.hot[0], friction=1.0 / (self._tau * units.fs), fixcm=False, rng=self._rng).run(self.hot[1])
+            hot_dyn = Langevin(self.at, self.dt * units.fs, temperature_K=self.hot[0], friction=1.0 / (self._tau * units.fs), fixcm=False, rng=self._rng)
+            if on_hot is not None: on_hot(hot_dyn, self.hot[1])
+            hot_dyn.run(self.hot[1])
+        if on_equilibration is not None: on_equilibration()
         self.dyn.run(self.equil); self.dyn.attach(self._rec, interval=self.every); self.started = True
 
     def advance(self, n):
@@ -680,11 +683,15 @@ def run_node(c, st, k):
         done = len(r.series) // (per // a.every)
         r.dyn.nsteps = neq + done * per  # resume observer cadence; avoid recording the checkpoint again at step zero
         r.dyn.attach(r._rec, interval=a.every); r.started = True
-        pr = StepProgress(r.dyn, tot, base=neq + done * per, path=pf, info=dict(k=k, lam=l)); r.dyn.attach(pr, interval=1)
+        pr = StepProgress(r.dyn, tot, base=neq + done * per, path=pf, info=dict(k=k, lam=l, phase="production")); r.dyn.attach(pr, interval=1)
         print(f"lambda {k}: RESTART from {sf}: {done} of {nchunk} chunks done ({len(r.series)} samples), continuing", flush=True)
     else:
-        pr = StepProgress(r.dyn, tot, path=pf, info=dict(k=k, lam=l)); r.dyn.attach(pr, interval=1)   # reads the step counter and the clock only
-        r.start()
+        pr = StepProgress(r.dyn, tot, path=pf, info=dict(k=k, lam=l, phase="equilibration")); r.dyn.attach(pr, interval=1)
+        def report_hot(hot_dyn, hot_steps):
+            hp = StepProgress(hot_dyn, hot_steps, path=pf, info=dict(k=k, lam=l, phase="heating"))
+            hot_dyn.attach(hp, interval=1)
+        r.start(on_hot=report_hot, on_equilibration=pr.reset_rate)
+        pr.info["phase"] = "production"; pr.write("running")
         Teq = 2 * r.at.get_kinetic_energy() / (r.ndof * units.kB)
         if not np.isfinite(Teq) or Teq > 20 * a.T:
             print(f"lambda {k}: UNSTABLE DYNAMICS during equilibration: T_kin {Teq:.0f} K (target {a.T:.0f} K). Rerun with a smaller time step (DT=0.5, FRESH=1).", flush=True); pr.write("failed"); sys.exit(5)

@@ -183,3 +183,16 @@ separate validated implementation. Embedded Kronrod−Gauss differences estimate
 quadrature sensitivity; they also contain sampling noise and are not rigorous
 error bounds. Compare at equal production cutoffs; missing new lambdas must not
 be presented as a completed Kronrod integral.
+
+Actual quadrature overlap is plotted in `docs/figures/quadrature_overlap.png`
+(and PDF), with all values/node indices in `docs/data/quadrature_lambda_values.csv`.
+Recreate with `python scripts/plot_quadrature_overlap.py`. The comparison uses
+the implementation's power-four lambda mapping and relative tolerance 1e-12.
+Different GK9/GK17/GK21/GK31 families share **one** midpoint at lambda=1/16
+(x=1/2 before mapping); GL15 shares that midpoint too. The even GL4/8/10/32
+rules otherwise do not share nodes across the listed families. Therefore saying
+there is no reuse *between* pairs is too strong: one trajectory is physically
+reusable across these GK rules, but the current same-directory continuation
+requires preservation of the entire existing node prefix and does not remap
+that isolated shared trajectory into a new family. Do not manually copy node
+files by their integer indices; those indices denote different lambda values.

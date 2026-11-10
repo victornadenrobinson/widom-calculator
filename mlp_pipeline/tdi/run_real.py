@@ -149,7 +149,7 @@ def check_stage0_compatible(c, kE):
         if isinstance(x, (int, float)) and isinstance(y, (int, float)) and not isinstance(x, bool):
             return abs(float(x) - float(y)) > 1e-9 * max(1.0, abs(float(y)))
         return x != y
-    bad = [f"{k} {A[k]!r} -> {now[k]!r}" for k in ("dt", "every", "chunk_ps", "model", "hper", "nghost", "natoms", "nrep", "tau", "liquid_start") if k in A and differ(A[k], now[k])]
+    bad = [f"{k} {A[k]!r} -> {now[k]!r}" for k in ("dt", "every", "chunk_ps", "model", "hper", "nghost", "natoms", "nrep", "tau", "liquid_start", "liquid_shape") if k in A and differ(A[k], now[k])]
     bad += [f"{k} {old[k]!r} -> {v!r}" for k, v in (("T", a.T), ("P_target", a.P), ("V", c["V"])) if k in old and differ(old[k], v)]
     if kE is not None and "kE" in old and differ(old["kE"], kE):
         bad.append(f"Einstein k {old['kE']!r} -> {kE!r}")
@@ -386,7 +386,7 @@ def build_h(vpa, nrep):
 
 def make_tag(a):
     """file-name stem of a run (before setup() fills in the default nrep): the launcher asks for it with --print-tag, so the shell and the files always agree"""
-    return a.tag or f"{a.phase}_{a.P:.0f}GPa_{a.T:.0f}K" + (f"_n{a.nghost}" + {"bcc": "_bcc", "H": "_Hhost" + (f"_N{a.natoms}" if a.natoms else "")}.get(getattr(a, "host_phase", "fcc"), "") if a.phase == "insert" else "") + (f"_h{a.hper:g}o" if (a.hper != 2.0 or a.phase == "liquid") and a.phase != "H" else "") + (f"_N{a.natoms}" if a.phase == "H" and a.natoms else "") + (f"_rep{a.nrep}" if a.nrep and a.phase in ("bcc", "fcc", "liquid") else "") + ("_startbcc" if a.phase == "liquid" and getattr(a, "liquid_start", "fcc") == "bcc" else "")
+    return a.tag or f"{a.phase}_{a.P:.0f}GPa_{a.T:.0f}K" + (f"_n{a.nghost}" + {"bcc": "_bcc", "H": "_Hhost" + (f"_N{a.natoms}" if a.natoms else "")}.get(getattr(a, "host_phase", "fcc"), "") if a.phase == "insert" else "") + (f"_h{a.hper:g}o" if (a.hper != 2.0 or a.phase == "liquid") and a.phase != "H" else "") + (f"_N{a.natoms}" if a.phase == "H" and a.natoms else "") + (f"_rep{a.nrep}" if a.nrep and a.phase in ("bcc", "fcc", "liquid") else "") + ("_startbcc" if a.phase == "liquid" and getattr(a, "liquid_start", "fcc") == "bcc" else "") + ("_shape" + "x".join(map(str, a.liquid_shape)) if a.phase == "liquid" and getattr(a, "liquid_shape", None) else "")
 
 
 def setup(a):
@@ -408,7 +408,7 @@ def setup(a):
         at0 = add_ghosts(host, a.nghost, a.seed + 7)
     elif a.phase == "liquid":   # fluid H(2+n)O: fcc start (32 O for nrep 2) that should melt; volume from the DFT hull EOS
         a.nrep = a.nrep or 2
-        at0 = eos.build(a.liquid_start, vpa, a.nrep, a.seed, a.hper)
+        at0 = eos.build(a.liquid_start, vpa, a.liquid_shape or a.nrep, a.seed, a.hper)
     else:
         a.nrep = a.nrep or eos.CELL[a.phase][2]
         at0 = eos.build(a.phase, vpa, a.nrep, a.seed, a.hper)
@@ -737,6 +737,7 @@ def make_parser():
     ap.add_argument("--from-dft", default=None); ap.add_argument("--vpa", type=float, default=None, help="A^3/atom (instead of --from-dft)")
     ap.add_argument("--nrep", type=int, default=None); ap.add_argument("--nodes", type=int, default=8); ap.add_argument("--power", type=float, default=4.0)
     ap.add_argument("--ps", type=float, default=4.0, help="production per lambda node"); ap.add_argument("--chunk-ps", type=float, default=0.5)
+    ap.add_argument("--liquid-shape", type=int, nargs=3, default=None, help="liquid starting-cell replicas along x y z")
     ap.add_argument("--liquid-start", choices=["fcc", "bcc"], default="fcc", help="initial oxygen lattice before liquid premelting; bcc nrep=4 gives 128 O / 384 atoms for H2O")
     ap.add_argument("--hot-ps", type=float, default=0.0, help="liquid phase: first heat every lambda to --hot-T for this long so the lattice start melts, then equilibrate at T"); ap.add_argument("--hot-T", type=float, default=12000.0)
     ap.add_argument("--lock-stale-min", type=float, default=30.0, help="a lambda-node lock file not touched for this long is taken over (see acquire_lock; a live holder touches it every minute)")

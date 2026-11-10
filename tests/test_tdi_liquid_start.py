@@ -26,3 +26,14 @@ def test_default_liquid_tags_unchanged():
     from tdi.run_real import make_tag
     a=make_parser().parse_args(['toyice','--phase','liquid','--P','350','--T','7000','--nrep','2'])
     assert make_tag(a)=='liquid_350GPa_7000K_h2o_rep2'
+
+
+def test_64_oxygen_rectangular_cell(tmp_path):
+    a=make_parser().parse_args(['toyice','--phase','liquid','--liquid-start','bcc',
+        '--nrep','4','--liquid-shape','4','4','2','--vpa','2.52',
+        '--T','7000','--P','350','--outdir',str(tmp_path)])
+    c=setup(a);at=c['at0']
+    assert len(at)==192 and (at.numbers==8).sum()==64
+    assert np.isclose(at.get_volume()/len(at),2.52)
+    assert c['tag'].endswith('_rep4_startbcc_shape4x4x2')
+    assert np.isclose(at.cell.lengths()[0]/at.cell.lengths()[2],2)

@@ -44,10 +44,12 @@ def build(phase, vpa, nrep, seed=0, hper=2.0, natoms=0):
         O, a = build_layered_O(phase, vpa, nrep, hper); cut = 1.5 * a   # a = nearest-neighbour distance
     else:
         nO_cell, basis, _ = CELL[phase]
-        N = int(round((1 + hper) * nO_cell * nrep ** 3))   # all atoms (hper H per O)
-        a = (N * vpa / nrep ** 3) ** (1 / 3)
-        O = Atoms("O" * (nO_cell * nrep ** 3), scaled_positions=[((np.array(b) + (i, j, k)) / nrep) for i in range(nrep) for j in range(nrep) for k in range(nrep) for b in basis],
-                  cell=[a * nrep] * 3, pbc=True); cut = a
+        shape = np.array(nrep if isinstance(nrep, (tuple, list)) else (nrep, nrep, nrep), dtype=int)
+        if len(shape) != 3 or np.any(shape < 1): raise ValueError("replication shape must have three positive integers")
+        cells = int(np.prod(shape)); N = int(round((1 + hper) * nO_cell * cells))
+        a = (N * vpa / cells) ** (1 / 3)
+        O = Atoms("O" * (nO_cell * cells), scaled_positions=[((np.array(b) + (i, j, k)) / shape) for i in range(shape[0]) for j in range(shape[1]) for k in range(shape[2]) for b in basis],
+                  cell=a * shape, pbc=True); cut = a
     d = neighbor_list("d", O, cut)                     # shortest O-O distance = nearest neighbour
     dmin = d.min()
     i, j, D = neighbor_list("ijD", O, 1.1 * dmin)

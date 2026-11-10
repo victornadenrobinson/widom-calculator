@@ -51,3 +51,9 @@ def test_worker_status_displays_rate_and_ignores_stale_process(tmp_path):
     assert 'GL8 λ3' in s and '20.0%' in s and '20.0 steps/s' in s and '50 ms/step' in s
     f.write_text(json.dumps(dict(pid=41,t=110,done=200,total=1000,rate=20)))
     assert 'starting/model loading' in q.worker_status(task,now=120)
+
+
+def test_oxygen_counts_for_fcc_and_rectangular_bcc():
+    assert q.cell_size(32,2)==(2,64)
+    assert q.cell_size(64,2)==(4,128)
+    assert q.cell_size(108,2.25)==(3,243)

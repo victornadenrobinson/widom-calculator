@@ -71,12 +71,12 @@ def worker_status(task, now=None):
 
 
 def cell_size(oxygen, hper):
-    """Represent exact composition on a cubic bcc starting lattice (2*n^3 O)."""
+    """Represent composition using available cubic FCC/BCC or 64-O rectangular BCC starts."""
     if oxygen < 1 or not np.isfinite(hper) or not 2 <= hper <= 7:
         raise ValueError('Use a positive oxygen count and H/O between 2 and 7 (available EOS coverage).')
-    nrep = round((oxygen / 2) ** (1 / 3))
-    if nrep < 1 or 2 * nrep ** 3 != oxygen:
-        raise ValueError('For the current cubic bcc builder --oxygen must be 2*n^3: e.g. 16, 54, 128, 250.')
+    nrep = {32: 2, 64: 4, 108: 3}.get(oxygen, round((oxygen / 2) ** (1 / 3)))
+    if oxygen not in (32,64,108) and (nrep < 1 or 2 * nrep ** 3 != oxygen):
+        raise ValueError('For the current cubic bcc builder --oxygen must be 2*n^3: e.g. 16, 32, 54, 64, 108, 128, 250.')
     hydrogen = round(oxygen * hper)
     if not np.isclose(hydrogen, oxygen * hper, rtol=0, atol=1e-8):
         raise ValueError('H/O times oxygen count must be an integer; choose a representable composition.')
@@ -87,7 +87,7 @@ def main():
     ap=argparse.ArgumentParser(description=__doc__)
     ap.add_argument('--P',type=float,default=350);ap.add_argument('--T',type=float,default=7000)
     ap.add_argument('--ps',type=float,default=6.25);ap.add_argument('--root',default=None)
-    ap.add_argument('--oxygen',type=int,default=128,help='O atoms / HxO formula units (bcc builder: 2*n^3; default 128)')
+    ap.add_argument('--oxygen',type=int,default=128,help='O atoms / HxO formula units (supported: 16,32,54,64,108,128,250...; default 128)')
     ap.add_argument('--hper',type=float,default=2.0,help='hydrogen per oxygen, e.g. 2.25 (default 2)')
     ap.add_argument('--per-gpu',type=int,default=4);ap.add_argument('--families',type=int,nargs='+',default=[4,8,10,15],choices=[4,8,10,15])
     ap.add_argument('--model',default='grace-ft:runs/grace/ft_mfinkc_cont/seed/1/final_model')
@@ -108,8 +108,11 @@ def main():
     lock=(root/'sweep.lock').open('w')
     try:fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
     except BlockingIOError:ap.error('Another sweep is already using this root.')
-    config=dict(P=args.P,T=args.T,model=args.model,nrep=nrep,liquid_start='bcc',dt=.5,chunk_ps=.125,equil_ps=.5,hot_ps=.5)
+    liquid_start = 'fcc' if args.oxygen in (32,108) else 'bcc'
+    config=dict(P=args.P,T=args.T,model=args.model,nrep=nrep,liquid_start=liquid_start,dt=.5,chunk_ps=.125,equil_ps=.5,hot_ps=.5)
     if args.hper != 2.: config['hper'] = args.hper
+    shape = (4,4,2) if args.oxygen == 64 else None
+    if shape: config['liquid_shape'] = list(shape)
     cf=root/'campaign.json'
     if cf.exists() and json.loads(cf.read_text())!=config:ap.error('Campaign settings differ; use a new --root.')
     cf.write_text(json.dumps(config,indent=2))
@@ -131,11 +134,19 @@ def main():
         if prev and prev.get('rule')=='gk':j['stage']=1
         requested=f'gl{j["n"]}' if j['stage']==0 else f'gk{2*j["n"]+1}'
         rule,nodes,ng=plan(prev,requested);j.update(rule=rule,nodes=nodes,ng=ng,status='stage0',stage_started=time.time())
-        j['tag']=f'liquid_{args.P:.0f}GPa_{args.T:.0f}K_h{args.hper:g}o_rep{nrep}_startbcc'
-        j['cmd']=[sys.executable,'-u',str(code/'tdi/run_real.py'),args.model,'--phase','liquid','--liquid-start','bcc','--nrep',str(nrep),
+        j['tag']=f'liquid_{args.P:.0f}GPa_{args.T:.0f}K_h{args.hper:g}o_rep{nrep}' + ('_startbcc' if liquid_start == 'bcc' else '')
+        if shape: j['tag'] += '_shape4x4x2'
+        j['cmd']=[sys.executable,'-u',str(code/'tdi/run_real.py'),args.model,'--phase','liquid','--liquid-start',liquid_start,'--nrep',str(nrep),
                   '--P',str(args.P),'--T',str(args.T),'--hper',str(args.hper),'--nodes',str(nodes),'--rule',rule,'--ngauss',str(ng),
                   '--power','4','--ps',str(args.ps),'--ps1','.5','--equil-ps','.5','--hot-ps','.5','--hot-T','12000',
                   '--chunk-ps','.125','--dt','.5','--outdir',str(j['directory'])]
+        if shape: j['cmd'] += ['--liquid-shape',*map(str,shape)]
+        action = ('RESUME/EXTEND saved samples; missing lambdas will run' if files else 'NEW run directory')
+        if files and all(node_complete(j['directory'],j['tag'],k,args.ps) for k in range(nodes)):
+            action = 'ALL lambdas already at target; skip production (grid may advance)'
+        color = ('\033[36m' if files else '\033[32m') if sys.stdout.isatty() else ''
+        reset = '\033[0m' if color else ''
+        print(f'{color}{j["directory"]}: {action}; no samples will be cleaned{reset}',flush=True)
         diary(j,'start');pending.append(dict(job=j,k=None))
     def finish(j):
         if not all(node_complete(j['directory'],j['tag'],k,args.ps) for k in range(j['nodes'])):

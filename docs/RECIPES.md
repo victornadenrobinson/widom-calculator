@@ -291,3 +291,30 @@ worker loads/compiles the model; updates are approximately every 30 seconds.
 For future runner invocations the main dashboard also shows per-GPU worker
 families, startup times, progress and rates. Already-running runner processes
 continue to use the code they started with; pulling does not alter those workers.
+
+**Size update:** `--oxygen 64` now uses a 4×4×2 BCC start (64 O, 192 atoms
+for H2O); `--oxygen 108` uses 3×3×3 FCC (108 O, 324 atoms for H2O), and
+`--oxygen 32` uses 2×2×2 FCC. The 64-O cell is rectangular (2:2:1), while
+128-O BCC and 108-O FCC starts are cubic: account for cell shape in finite-size
+interpretation. These are initial structures that must melt. Existing 128-O
+BCC campaign paths and tags are unchanged. New run directories get a colored
+new/resume/already-complete message in an interactive terminal; no automatic
+cleanup is performed. The existing stage0 and collected metadata are archived
+in run_history/ before updates. Model, size, composition and settings must
+match for restart. Only saved completed chunks are resumed.
+
+Compare the completed 32-O quadratures using a fresh figure prefix:
+
+```bash
+"$HOME/grace-venv/bin/python" mlp_pipeline/tdi/plot_quad_compare.py \
+  runs/tdi_mfinkc_pilot_350GPa_7000K runs/tdi_qtest_gl* \
+  --out runs/plots/quad_O32_comparison
+```
+
+The tool uses the common production-time cutoff for the summary, graphs the
+full available cumulative G(t), derives embedded GL4 from GK9 (and analogues
+for other families), and skips missing samples. It refuses mismatched recorded
+model paths, P, T, cell size, volume and composition. If only the GL4/GK9 pilot
+exists, only those two curves appear. Statistical errors and the differences
+between related quadratures are correlated; error bars are not independent
+confidence intervals. The figure does not establish phase or convergence.

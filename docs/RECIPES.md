@@ -316,3 +316,11 @@ model paths, P, T, cell size, volume and composition. If only the GL4/GK9 pilot
 exists, only those two curves appear. Statistical errors and the differences
 between related quadratures are correlated; error bars are not independent
 confidence intervals. The figure does not establish phase or convergence.
+
+The adaptive scheduler defaults to **four workers per GPU**, staggered by
+three seconds between starts across the allocation to reduce simultaneous
+model-loading/compilation pressure. Override with `--per-gpu N` and
+`--launch-delay SECONDS` (0 disables staggering). Startup spacing changes job
+scheduling only; it does not change or clear saved samples. More than four
+workers may improve throughput on small cells, or may only increase memory use
+and contention: measure steps/s and GPU memory before changing production runs.

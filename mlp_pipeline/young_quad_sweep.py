@@ -89,7 +89,7 @@ def main():
     ap.add_argument('--ps',type=float,default=6.25);ap.add_argument('--root',default=None)
     ap.add_argument('--oxygen',type=int,default=128,help='O atoms / HxO formula units (supported: 16,32,54,64,108,128,250...; default 128)')
     ap.add_argument('--hper',type=float,default=2.0,help='hydrogen per oxygen, e.g. 2.25 (default 2)')
-    ap.add_argument('--per-gpu',type=int,default=4);ap.add_argument('--families',type=int,nargs='+',default=[4,8,10,15],choices=[4,8,10,15])
+    ap.add_argument('--per-gpu',type=int,default=4);ap.add_argument('--launch-delay',type=float,default=3.,help='seconds between starting workers across all GPUs (default 3; 0 disables)');ap.add_argument('--families',type=int,nargs='+',default=[4,8,10,15],choices=[4,8,10,15])
     ap.add_argument('--model',default='grace-ft:runs/grace/ft_mfinkc_cont/seed/1/final_model')
     args=ap.parse_args();os.chdir(ROOT)
     try: nrep, hydrogen = cell_size(args.oxygen,args.hper)
@@ -101,6 +101,7 @@ def main():
     gpus=os.environ.get('CUDA_VISIBLE_DEVICES','').split(',')
     if not all(gpus) or len(set(gpus))!=len(gpus):ap.error('Need valid Slurm-assigned CUDA_VISIBLE_DEVICES.')
     if args.per_gpu<1:ap.error('--per-gpu must be positive.')
+    if not np.isfinite(args.launch_delay) or args.launch_delay<0:ap.error('--launch-delay must be non-negative and finite.')
     if len(set(args.families))!=len(args.families):ap.error('Duplicate families.')
     if args.ps<=0 or abs(args.ps/.125-round(args.ps/.125))>1e-8:ap.error('--ps must be a positive multiple of 0.125 ps.')
     if args.model.startswith('grace-ft:') and not Path(args.model.split(':',1)[1],'saved_model.pb').is_file():ap.error('Missing model export.')
@@ -118,7 +119,7 @@ def main():
     cf.write_text(json.dumps(config,indent=2))
     stamp=datetime.datetime.now().strftime('%Y%m%d_%H%M%S_%f')
     snap=root/'code'/stamp; snap.mkdir(parents=True);shutil.copytree(ROOT/'mlp_pipeline',snap/'mlp_pipeline',ignore=shutil.ignore_patterns('__pycache__'))
-    code=snap/'mlp_pipeline';active=[];pending=deque();serial=0
+    code=snap/'mlp_pipeline';active=[];pending=deque();serial=0;last_launch=None
     env=os.environ.copy()
     for key in ('GRACE_MODE','HHWALL','GRACE_UQ'):env.pop(key,None)
     env.update(PYTHONPATH=str(code),OMP_NUM_THREADS='1',TF_USE_LEGACY_KERAS='1',TF_FORCE_GPU_ALLOW_GROWTH='true',H3O_RUNS=str(ROOT/'runs'))
@@ -159,7 +160,7 @@ def main():
         else:j['status']='done'
     def terminal_lines():
         lines=[f'{time.strftime("%H:%M:%S")} | Liquid H{args.hper:g}O: {args.oxygen} O + {hydrogen} H = {args.oxygen+hydrogen} atoms | {args.P:g} GPa / {args.T:g} K | {args.ps:g} ps/lambda | {len(gpus)} GPUs, {args.per_gpu} slots/GPU',
-               'Shared lambda queue; log files: '+str(root)]
+               f'Shared lambda queue; {args.launch_delay:g}s between launches; log files: '+str(root)]
         for gpu in gpus:
             tasks=[t for t in active if t['gpu']==gpu]
             lines.append(f'GPU {gpu}: '+(f'{len(tasks)} running' if tasks else 'idle'))
@@ -186,6 +187,7 @@ def main():
         while pending or active:
             # Fill free slots across every assigned GPU; stage0 dependencies are queued first.
             while pending:
+                if last_launch is not None and time.monotonic()-last_launch < args.launch_delay:break
                 gpu=choose_gpu(gpus,active,args.per_gpu)
                 if gpu is None:break
                 t=pending.popleft();j=t['job']
@@ -195,6 +197,7 @@ def main():
                 t['fh']=t['log'].open('a');te=env.copy();te['CUDA_VISIBLE_DEVICES']=gpu
                 cmd=j['cmd']+(['--stage0'] if t['k'] is None else ['--node',str(t['k'])])
                 t.update(gpu=gpu,launched=time.time(),proc=subprocess.Popen(cmd,env=te,stdout=t['fh'],stderr=subprocess.STDOUT,start_new_session=True));active.append(t)
+                last_launch=time.monotonic()
             for t in list(active):
                 rc=t['proc'].poll()
                 if rc is None:continue
@@ -213,7 +216,12 @@ def main():
                 for line in lines:sys.stdout.write('\r\033[2K'+line+'\n')
                 sys.stdout.flush();previous=len(lines)
             elif time.time()-last_print>60 or not(pending or active):print('\n'.join(lines),flush=True);last_print=time.time()
-            if pending or active:time.sleep(3)
+            if pending or active:
+                wait=3.
+                if pending and last_launch is not None and choose_gpu(gpus,active,args.per_gpu) is not None:
+                    remaining=args.launch_delay-(time.monotonic()-last_launch)
+                    if remaining>0:wait=min(wait,max(.05,remaining))
+                time.sleep(wait)
     finally:
         for t in active:
             if t['proc'].poll() is None:os.killpg(t['proc'].pid,signal.SIGTERM)

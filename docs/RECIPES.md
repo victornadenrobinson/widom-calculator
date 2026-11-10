@@ -358,3 +358,46 @@ its current share of GPU throughput persists. Queue dependencies, startup and
 changing GPU loads make both estimates provisional. `watch_quad.py` shows the
 same family estimates, including for an already-running campaign, but old
 workers cannot gain phase-aware timing until restarted with the newer code.
+
+### Young one-GPU liquid hull campaign: 100–500 GPa
+
+`young_liquid_campaign.py` plans H2O, H3O and 729-atom pure H at P=100, 200,
+350, 500 GPa at 7000 and 5000 K, plus P=100 and 200 GPa at 3000 K: **30 jobs**.
+H2O is 128 O/384 atoms; H3O is 128 O/512 atoms. Liquids use cubic BCC starts,
+0.5 ps at 12000 K, then 0.5 ps equilibration per lambda. Each job requests one
+Young GPU, 8 CPUs and 60 GB, with four lambda workers, GL8/GK17 (17 total
+lambda trajectories), dt 0.5 fs, and 6.25 ps production per lambda. This is a
+requested campaign, not an assertion that 3000 K H-rich states remain liquid or
+that the model is validated at low P/T. Check phase, pressure, sampling and
+finite-size effects before interpreting hulls.
+
+From the Young **login node**, print the coverage plan:
+
+```bash
+cd /lustre/scratch/mmm0037/H3O && git pull --ff-only origin gpt/youthful-jolly-review && "$HOME/grace-venv/bin/python" mlp_pipeline/young_liquid_campaign.py
+```
+
+Run the same with `--submit` to submit one Slurm array task per covered state,
+default max four simultaneous tasks and 12 hours per task. `--concurrency N`,
+`--time HH:MM:SS`, `--ps`, `--inventory`, `--model` and `--volumes` override
+settings. Submit **once**: repeated --submit commands create additional Slurm
+arrays. A per-state file lock refuses simultaneous writers and each completed
+lambda checkpoint is reused; resubmit deliberately to resume interrupted jobs.
+Slurm account/partition/QOS come from the Young sbatch header and may depend on
+current site policy. Each submission snapshots the source code and saves its
+manifest, blocked cases, scheduler response and job logs under
+`runs/liquid_campaigns/<timestamp>/`; sampled states are under
+`runs/liquid_tdi_mfinkc/`. The snapshot prevents a git pull changing queued jobs.
+Local tests exercise planning and volume validation; the actual Young Slurm/GPU
+campaign requires its first real run to establish correct execution and cost.
+
+Without a supplied volume, liquid H2O/H3O volumes come from the DFT hull EOS
+(5000/7000/9000 K and only within its pressure range); H volumes use
+`runs/inventory_binned.csv`. No extrapolation or clipping is performed. For
+missing states, `--volumes path.csv` can supply **validated** starting volumes
+using columns `system,P_GPa,T_K,vpa_A3`, with system h2o, h3o or h. Each row
+matches one state; supplied values override automatic lookup. Rerun the planner
+and submit after resolving missing points. Measure the model pressure at each
+volume and refine if needed. Since the launcher supplies explicit volume,
+bulk modulus defaults to NaN; second-order pressure corrections are not
+computed automatically. A full-potential pressure/phase check is needed.

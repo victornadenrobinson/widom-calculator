@@ -128,3 +128,35 @@ The legacy TDI state does not store the thermostat RNG state: continuation is
 not bit-identical to an uninterrupted trajectory (unlike PWidom checkpoints).
 Restart observer cadence was fixed to avoid a duplicate checkpoint sample;
 CPU toy integration verified 20 samples extend to 40 with the old prefix intact.
+
+### Saved-data liquid hull dashboard (CPU only; Young or Perlmutter)
+
+```bash
+"$PY" mlp_pipeline/tdi/hull_dashboard.py runs/tdi_mfinkc_pilot_350GPa_7000K --P 350 --T 7000 --out runs/plots/liquid_pilot
+```
+
+Produces PNG, PDF and a numerical CSV. One column per composition: integrand
+<dU/dlambda> (log lambda), cumulative G with five-block statistical SEM, and
+high-lambda temperature/full-MLP pressure history. No trajectory reads, MSD,
+model evaluations or MD. An incomplete/single-system report still plots available
+diagnostics; mixing needs completed liquid H2O and pure-H references. Mixed
+model specifications, duplicate compositions and unequal quadrature grids in
+mixing are refused. This is a provisional diagnostic, not automated certification:
+model paths do not establish identical weights, saved metadata must be reliable,
+and phase, finite-size, timestep and sampling errors need independent checks.
+
+The top row shows mixing free energies and the sampled lower convex hull versus
+**added-H atom fraction** x=(H/O−2)/(H/O+1), matching the per-atom energy basis.
+An atomic O/H ideal compositional-entropy reference is overlaid, with a second
+panel showing TDI minus that reference. This is the convention in tx_diagram.py,
+not an ideal mixture of intact H2O molecules and H2. It is a chosen baseline,
+not an additional entropy correction to the TDI. Different density/association
+models can define different ideal references. Endpoint differences are exactly
+zero by construction; mixture errors share correlated endmember uncertainties.
+Error bars show marginal statistical errors only, not independent hull-node
+uncertainties. Cumulative prefixes are correlated. Lines between integrand
+samples guide the eye; the numerical integral uses the saved quadrature weights.
+For lambda^power integration, the existing plot_tdi.py additionally shows the
+transformed coordinate and individual weighted contributions. Run it when
+diagnosing low-lambda quadrature. Phase checks remain optional separate work
+with liquid_check.py; high-lambda diagnostics do not replace full-potential MD.

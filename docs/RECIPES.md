@@ -324,3 +324,11 @@ model-loading/compilation pressure. Override with `--per-gpu N` and
 scheduling only; it does not change or clear saved samples. More than four
 workers may improve throughput on small cells, or may only increase memory use
 and contention: measure steps/s and GPU memory before changing production runs.
+
+For a quadrature convergence discrepancy, use `tdi/quad_diagnostics.py` with
+explicit run directories. It checks each checkpoint's lambda, recorded model
+path and sample series; reports each node's weighted first-to-second-half shift,
+full and last-half free energies, and GK−GL with shared-node covariance included
+(assuming independently sampled lambdas). Its five-block SEM may underestimate
+correlation, and this is not an independent proof of equilibration, identical
+weights, phase, or absence of systematic quadrature error.

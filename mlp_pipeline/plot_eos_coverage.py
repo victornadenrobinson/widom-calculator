@@ -8,7 +8,7 @@ import sys
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-from eos_literature import overlay
+from eos_literature import overlay, dft_points
 from eos_volume_table import usable
 
 COMPS = ('h2o', 'h2.25', 'h3o', 'h5o', 'h7o', 'h')
@@ -44,6 +44,7 @@ def main():
                 counts.append((str(f), len(good), len(other)))
         for p in (100, 200, 350, 500): ax.axvline(p, color='0.85', lw=.7)
         for T in (3000, 5000, 7000): ax.axhline(T, color='0.92', lw=.7)
+        dft_points(ax,comp)
         overlay(ax,comp)
         ax.set(title=comp, xlim=(0, 560), ylim=(0, 9500), xlabel='Pressure (GPa)', ylabel='Temperature (K)')
     for ax in axes.flat:

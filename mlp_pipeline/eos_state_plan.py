@@ -11,7 +11,7 @@ import numpy as np
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-from eos_literature import overlay
+from eos_literature import overlay, dft_points
 
 ROOT = Path(__file__).resolve().parents[1]
 COMPS = ('h2o', 'h2.25', 'h3o', 'h5o', 'h7o', 'h')
@@ -82,6 +82,7 @@ def main():
         ordered=[r for r in rows if r['structure'] in ('bcc','fcc','hcp')]
         ax.scatter([r['P'] for r in normal],[r['T'] for r in normal],s=24,color='tab:blue',label='Reported EOS point',zorder=3)
         ax.scatter([r['P'] for r in ordered],[r['T'] for r in ordered],s=45,marker='x',color='firebrick',label='Ordered O reported',zorder=4)
+        dft_points(ax,c)
         overlay(ax,c)
         ax.set(title=c.upper(),xlim=(0,560),ylim=(500,9500),xlabel='Pressure (GPa)',ylabel='Temperature (K)')
         ax.grid(alpha=.15)

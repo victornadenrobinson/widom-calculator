@@ -234,22 +234,34 @@ while True:
         dps = f"{100 * (pn - pd_) / pd_:+6.1f}" if pd_ == pd_ and pn == pn else f"{'':6s}"; bar = "#" * int(20 * st["frac"]) + "." * (20 - int(20 * st["frac"]))
         out.append(f"{NAME[c]:7s} {j['vpa']:6.3f} {j['gpu']:>3d}  [{bar}] {st['stage'][:8]:8s} {st['T']:>6s} {st['P']:>8s} {st['Pe']:>5s} {(f'{pd_:7.1f}' if pd_ == pd_ else f'{chr(45):>7s}')} {dps} {st['ms']:>5s} {st['eta']:>6s}"
                    + (f"  {st['stage']}" if st["stage"].startswith("FAILED") else ""))
-    room = th - 2 - len(out) - 7                                           # rows left for the plot canvas (title, legend, axis label, x axis and its labels take ~7 lines)
+    room = th - 2 - len(out) - 7  # reserve title, axes and legend around the graph
     if E("PLOT", "braille") == "braille" and room >= 6:
         drawing = plot(min(18, room))
+        if not drawing:
+            drawing = [f"EOS at {T} K: P–V plot", "Waiting for the first pressure values..."]
         queue = json.loads(E("EOS_QUEUE", "[]"))
-        panel = ["EOS CAMPAIGN QUEUE", campaign_remaining(queue),
-                 "Startup/phase changes/GPU contention may shift ETA",
-                 "T (K) | compositions | state | initial estimate"]
+        panel = ["EOS QUEUE", campaign_remaining(queue)] if queue else []
         for q in queue:
-            eta = "unknown" if q.get('seconds') is None else "~" + duration(q['seconds'])
-            panel += [f"{q['T']} | {q['comp']}", f"  {q['state']} | {eta} | {q['pressure']}"]
-        if queue and tw >= 150:
-            width = max([len(VIS.sub('', l)) for l in drawing] or [0]) + 3
-            out += [""] + [(drawing[i] + ' '*(width-len(VIS.sub('', drawing[i]))) if i<len(drawing) else ' '*width) + (panel[i] if i<len(panel) else '') for i in range(max(len(drawing),len(panel)))]
+            eta = "?" if q.get('seconds') is None else "~" + duration(q['seconds'])
+            comps = q['comp'].split()
+            label = "all 6" if len(comps) == 6 else ",".join(comps)
+            panel.append(f"{q['T']}K {label} {q['state']} {eta}")
+        if panel and tw >= 120:
+            width = min(max(len(VIS.sub('', line)) for line in drawing) + 3, tw - 32)
+            combined=[]
+            for i in range(max(len(drawing),len(panel))):
+                left=fit(drawing[i], width-3) if i<len(drawing) else ""
+                right=panel[i] if i<len(panel) else ""
+                combined.append(left+' '*(width-len(VIS.sub('',left)))+right)
+            out += [""] + combined
         else:
-            out += [""] + (panel if queue else []) + drawing
-    elif E("PLOT", "braille") == "braille": out.append(f"(plot hidden: terminal too short by {6 - room} lines; enlarge the window or use NV / fewer compositions)")
+            # Keep the plot first on narrow terminals; show as much queue as fits.
+            out += [""] + drawing
+            remaining = max(0, th - 2 - len(out))
+            if panel and remaining:
+                out += panel[:remaining]
+    elif E("PLOT", "braille") == "braille":
+        out.append(f"(plot hidden: terminal too short by {6 - room} lines; enlarge the window)")
     out = [fit(l, tw) for l in out][: max(10, th - 2)]                     # never wider or taller than the terminal
     if prev: sys.stdout.write(f"\x1b[{prev}A")
     sys.stdout.write("\n".join(l + "\x1b[K" for l in out) + "\n\x1b[J"); sys.stdout.flush(); prev = len(out)

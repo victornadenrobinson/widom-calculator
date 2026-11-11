@@ -32,7 +32,12 @@ def main():
     ap.add_argument('--atoms', type=int, default=729)
     ap.add_argument('--out', type=Path, default=None, help='output directory')
     ap.add_argument('--trajectories', action='store_true', help='recover missing fractions from saved frames')
+    ap.add_argument('--dynamics', action='store_true', help='analyse sampled pair persistence and survival')
+    ap.add_argument('--frame-fs', type=float, default=20., help='saved-frame spacing in fs; verify for your run')
+    ap.add_argument('--cutoffs', type=float, nargs='+', default=[.80, .85, .90], help='H-H distance thresholds in Å')
     args = ap.parse_args()
+    if args.frame_fs <= 0 or any(c <= 0 for c in args.cutoffs):
+        ap.error('frame spacing and cutoffs must be positive')
     tag = f'{args.model}_h_{args.temperature}K_{args.atoms}at'
     folder = args.root / tag
     table = folder / f'{tag}.csv'
@@ -114,6 +119,9 @@ def main():
         writer.writerows(records)
     print(f'Read {len(records)} EOS rows; plotted {count} RDFs and {len(valid)} fractions.')
     print(f'Output: {out.resolve()}')
+    if args.dynamics:
+        from h_pair_dynamics import analyse_campaign
+        analyse_campaign(records, args.temperature, out, args.frame_fs, args.cutoffs)
     for rec in records:
         f = rec['f_H2_like']
         value = f'{100*f:.1f}%' if math.isfinite(f) else 'missing'

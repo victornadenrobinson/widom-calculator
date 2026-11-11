@@ -45,6 +45,11 @@ def main():
     reported = read_rows(ROOT/'data/final_model/perlmutter_eos_7000K_reported.csv')
     observations = [dict(c=r['composition'], P=float(r['P_GPa_rounded']),
                          T=float(r['T_set_K']), structure=r['O_struct']) for r in reported]
+    young = ROOT/'data/final_model/young_eos_7000K_reported.csv'
+    if young.exists():
+        observations.extend(dict(c=r['composition'], P=float(r['P_GPa_rounded']),
+                                 T=float(r['T_set_K']), structure=r['O_struct'])
+                            for r in read_rows(young))
     energies = []
     for root in a.root:
         for c in COMPS:

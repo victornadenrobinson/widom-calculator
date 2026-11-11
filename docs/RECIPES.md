@@ -442,3 +442,21 @@ and short trajectories do not prove a phase. After review,
 uses those candidate V/atom values for coverage. Those EOS volumes can supplement
 or override the DFT-derived lookup; they are not DFT validation. The default
 CSV filter selects directories named `ft_mfinkc_cont_*` and records sources.
+
+### Fill selected EOS pressure gaps with explicit volumes
+
+`eos_live.sh` accepts `VPA_JSON`, a JSON mapping from every requested COMP to a
+list of positive volumes in A^3/atom. This overrides NV and volume bounds, keeps
+the live dashboard, skips matching saved volumes, and names additional logs by
+volume to avoid overwriting the original indexed logs. Existing failed-phase
+rows are not automatically repeated. No other writer should use these same
+composition/temperature output directories concurrently.
+
+```bash
+PY="$HOME/grace-venv/bin/python" MODEL=grace-ft:runs/grace/ft_mfinkc_cont \
+COMP="h2.25 h5o h7o" T=7000 NGPU=4 PER_GPU=4 PLOT=braille REFRESH=10 \
+OMP_NUM_THREADS=1 VPA_JSON="$(cat data/final_model/eos_7000K_refine_volumes.json)" \
+bash mlp_pipeline/eos_live.sh
+```
+
+Unset VPA_JSON (or do not pass it) for the usual broad-volume 5000 K scan.

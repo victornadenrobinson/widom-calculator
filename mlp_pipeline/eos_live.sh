@@ -18,7 +18,7 @@ if [ -z "${MODEL:-}" ]; then for r in mfin_f_lr1e-2_e50 mfin_f_lr1e-2_e50_F200; 
 [ -n "${MODEL:-}" ] || { echo "set MODEL=grace-ft:runs/grace/ft_<run>"; exit 1; }
 NG=${NGPU:-$(nvidia-smi -L 2>/dev/null | wc -l)}; [ "$NG" -ge 1 ] || { echo "no GPU visible"; exit 1; }
 exec $PY - "$MODEL" "$NG" <<'EOF'
-import ast, csv, math, os, re, shutil, signal, subprocess, sys, time
+import ast, csv, json, math, os, re, shutil, signal, subprocess, sys, time
 import numpy as np
 MODEL, NG = sys.argv[1], int(sys.argv[2]); E = os.environ.get
 GPU_IDS = E("CUDA_VISIBLE_DEVICES", "").split(",") if E("CUDA_VISIBLE_DEVICES") else list(map(str, range(NG)))
@@ -29,6 +29,15 @@ COMPS = E("COMP", "h2o").split(); HPER = {"h": 0.0, "h2o": 2.0, "h2.25": 2.25, "
 NAME = {"h2o": "H2O", "h": "H", "h2.25": "H2.25O", "h3o": "H3O", "h5o": "H5O", "h7o": "H7O"}
 bad = [c for c in COMPS if c not in HPER]
 if bad: sys.exit(f"COMP must be among {list(HPER)}; got {bad}")
+# Optional explicit per-composition volume grids for filling pressure gaps.
+VPA_GRIDS = json.loads(E("VPA_JSON", "{}"))
+if not isinstance(VPA_GRIDS, dict): sys.exit("VPA_JSON must map composition names to lists of volumes")
+for comp in COMPS:
+    if VPA_GRIDS and comp not in VPA_GRIDS: sys.exit(f"VPA_JSON missing {comp}")
+    if comp in VPA_GRIDS:
+        grid = VPA_GRIDS[comp]
+        if not isinstance(grid, list) or not grid or any(not isinstance(v, (int, float)) or not math.isfinite(v) or v <= 0 for v in grid):
+            sys.exit(f"VPA_JSON needs positive finite volumes for {comp}")
 mname = os.path.basename(MODEL.split(":", 1)[-1].rstrip("/"))
 
 def dft_eos(comp):
@@ -70,11 +79,13 @@ for c in COMPS:
             try: done_v.add(round(float(r["vpa"]), 4))
             except (KeyError, ValueError): pass
     print(f"{NAME[c]:7s} {desc} | {NV} volumes {vmax} -> {vmin} A^3/atom | equil {eq} + prod {ps} ps | DFT EOS {len(DFT[c])} points | {len(done_v)} volumes already done -> {D}")
-    for k, v in enumerate(np.geomspace(vmax, vmin, NV)):
+    grid = VPA_GRIDS.get(c, np.geomspace(vmax, vmin, NV))
+    if c in VPA_GRIDS: print(f"  explicit grid overrides NV/range: {grid}")
+    for k, v in enumerate(grid):
         v = round(float(v), 4)
         if v in done_v: continue
         steps = (pm + eq + ps) * 2000
-        jobs.append(dict(comp=c, k=k, vpa=v, log=os.path.join(D, f"log_{k}.txt"), cost=nat * steps * (0.5 + 4.0 / v), state="queued", pid=None, gpu=None, res=None,
+        jobs.append(dict(comp=c, k=k, vpa=v, log=os.path.join(D, f"log_v{v:.4f}.txt" if c in VPA_GRIDS else f"log_{k}.txt"), cost=nat * steps * (0.5 + 4.0 / v), state="queued", pid=None, gpu=None, res=None,
                          cmd=[sys.executable, os.path.join(CODE_DIR, "17_eos_md.py"), MODEL] + sysargs + ["--T", str(T), "--vpa", f"{v}", "--equil-ps", str(eq), "--ps", str(ps), "--report-fs", "50", "--tag", tag, "--outdir", D]))
 if not jobs:
     print("nothing to run (all volumes done)")

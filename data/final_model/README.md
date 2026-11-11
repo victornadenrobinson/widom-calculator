@@ -190,3 +190,18 @@ labels can be electronic free energies (TOTEN), an electronic entropy correction
 may be needed to interpret it as thermodynamic internal energy for Hugoniots.
 No such correction or energy-reference alignment is silently applied. Missing
 energy columns are omitted, never imputed from the rounded timing transcription.
+
+`young_eos_7000K_reported.csv` transcribes the 48 completed H2.25O/H5O/H7O
+rows printed by the user's Young dashboard on 2026-11-11. All values retain the
+printed (rounded) precision; flags are preserved, including CLOSE-HH and T-off.
+No potential-energy values were printed in this table. Source paths are
+`runs/eos_live/ft_mfinkc_cont_<composition>_7000K_<N>at/<tag>.csv`.
+
+`eos_7000K_refine_volumes.json` proposes 12 additional volumes at 7000 K:
+H2.25O near 300/350/450 GPa, H5O near 300/350/450/500 GPa, H7O near
+300/350/400/450/500 GPa. These initial guesses interpolate V linearly in log P
+from the rounded reported rows; actual measured pressure can differ. Flagged
+rows are permitted only as volume guesses, not certified EOS or free-energy
+inputs. These are additional points, not extensions or replacements of flagged
+runs. The original short H2O high-pressure runs retain bcc oxygen order and do
+not establish liquid coverage; their bcc starting lattice may not have melted.

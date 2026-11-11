@@ -20,6 +20,14 @@ def overlay(ax, composition):
     if composition == 'h3o':
         # Approximate pressure at 5000 K, not a measured coexistence pressure.
         ax.scatter([540],[5250],marker='*',s=75,color='purple',label='Huang 2020 heating (~540 GPa)',zorder=6)
+    if composition == 'h':
+        # Finite-size PBE/NequIP estimate: quoted interval, not a traced line.
+        ax.errorbar([157.5], [1250], xerr=[2.5], yerr=[50], fmt='D',
+                    color='darkred', capsize=2, markersize=5,
+                    label='PBE/NequIP critical estimate', zorder=6)
+        # Morales et al. 2010: reported QMC and DFT melt/transition crossings.
+        ax.scatter([220, 290], [700, 550], marker='x', color='darkorange', s=55,
+                   label='Morales 2010 DFT/QMC crossings', zorder=6)
     if composition == 'h7o':
         d=rows('gupta2024_critical_curve.csv')
         ax.plot([float(r['P_GPa']) for r in d],[float(r['Tc_K']) for r in d],

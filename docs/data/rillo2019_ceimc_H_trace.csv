@@ -1,0 +1,10 @@
+# Approximate visual trace of blue LLPT-H curve in Rillo et al. 2019 Fig. 1, DOI 10.1073/pnas.1818897116; not original numeric data. Estimated reading uncertainty at least 5 GPa and 50 K; for contextual plotting only.
+P_GPa,T_K
+172,1500
+185,1410
+200,1270
+205,1200
+212,900
+230,820
+250,720
+270,600

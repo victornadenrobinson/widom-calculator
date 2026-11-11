@@ -21,6 +21,9 @@ def overlay(ax, composition):
         # Approximate pressure at 5000 K, not a measured coexistence pressure.
         ax.scatter([540],[5250],marker='*',s=75,color='purple',label='Huang 2020 heating (~540 GPa)',zorder=6)
     if composition == 'h':
+        traced=rows('rillo2019_ceimc_H_trace.csv')
+        ax.plot([float(r['P_GPa']) for r in traced], [float(r['T_K']) for r in traced],
+                color='blue', ls='--', lw=1.3, label='Rillo 2019 CEIMC H (visual trace)', zorder=5)
         # Finite-size PBE/NequIP estimate: quoted interval, not a traced line.
         ax.errorbar([157.5], [1250], xerr=[2.5], yerr=[50], fmt='D',
                     color='darkred', capsize=2, markersize=5,

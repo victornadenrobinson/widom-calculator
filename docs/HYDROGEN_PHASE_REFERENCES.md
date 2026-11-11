@@ -36,3 +36,15 @@ The user's H2/D2 shock Hugoniots are paths through P–T space, not phase
 boundaries. The unidentified `H melt P/T` columns in the project CSV are not
 used until their provenance and units are confirmed. Published predictions
 differ by electronic method, nuclear quantum treatment, size and sampling.
+
+- [Rillo et al., PNAS 116, 9770–9774 (2019)](https://doi.org/10.1073/pnas.1818897116),
+  *Optical properties of high-pressure fluid hydrogen across molecular
+  dissociation*. Figure 1 compares CEIMC LLPT estimates for H (blue) and D
+  (red) with optical measurements. The plotted H line is an approximate manual
+  trace of the supplied image, stored in `docs/data/rillo2019_ceimc_H_trace.csv`;
+  the estimated reading uncertainty is at least 5 GPa and 50 K and it is not
+  the original numerical data. The plotted deuterium line is not pure-H data.
+  The authors interpret high-temperature DAC plateaus above ~1500 K as the
+  onset of optical absorption rather than necessarily a phase transition.
+  Optical absorption/reflectivity thresholds and first-order coexistence lines
+  should therefore remain separately labelled.

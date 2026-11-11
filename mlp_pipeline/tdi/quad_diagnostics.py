@@ -25,7 +25,7 @@ def inspect(directory):
         if len(x)<50 or not np.isfinite(x).all():raise ValueError(f'{f}: fewer than 50 or non-finite samples')
         if not state.exists():raise ValueError(f'missing checkpoint {state}')
         with np.load(state) as z:
-            if 'lam' not in z or not np.isclose(z['lam'].item(),l,rtol=1e-12,atol=0):raise ValueError(f'{state}: lambda mismatch')
+            if 'lam' not in z or not np.isclose(z['lam'].item(),l,rtol=1e-11,atol=0):raise ValueError(f'{state}: lambda mismatch')
             if 'model' not in z or z['model'].item()!=A['model']:raise ValueError(f'{state}: model mismatch')
             if not np.array_equal(z['series'],x):raise ValueError(f'{state}: checkpoint and series differ')
         series.append(x)

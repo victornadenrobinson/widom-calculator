@@ -50,3 +50,5 @@ Workflow (`h3o_mlp/`, `scripts/`):
 5. `finetune.split` + `finetune.mace_command` – 80/20 split and force/stress-weighted fine-tuning on Perlmutter A100s.
 
 Tests: `pytest tests`
+
+Curated final-potential data and provenance: [data/final_model](data/final_model/README.md).

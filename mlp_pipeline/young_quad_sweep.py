@@ -221,7 +221,8 @@ def main():
                 if j['status']=='sampling' and not any(x['job'] is j for x in list(pending)+active):finish(j)
             lines=terminal_lines()
             if sys.stdout.isatty():
-                if previous:sys.stdout.write(f'\033[{previous}A\033[J')
+                # Keep the last live speeds visible above the final report.
+                if previous and (pending or active):sys.stdout.write(f'\033[{previous}A\033[J')
                 for line in lines:sys.stdout.write('\r\033[2K'+line+'\n')
                 sys.stdout.flush();previous=len(lines)
             elif time.time()-last_print>60 or not(pending or active):print('\n'.join(lines),flush=True);last_print=time.time()

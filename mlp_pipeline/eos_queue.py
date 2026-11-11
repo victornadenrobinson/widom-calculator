@@ -61,7 +61,7 @@ def estimate(group, model, slots):
                     except (KeyError,ValueError):pass
         if not times:return None
         n=len(group.get('volumes',{}).get(c,group.get('pressures_GPa',[]))) or group.get('nv',16)
-        costs.extend([np.median(times)/1000*(2000*(1.25 if c!='h' else .7))]*n)
+        costs.extend([np.median(times)/1000 * (2000 * (group.get('ps', .75 if c!='h' else .5) + group.get('eq', .25 if c!='h' else .2) + (.25 if c!='h' else 0)))] * n)
     return float(max(sum(costs)/slots,max(costs,default=0)))
 
 
@@ -73,6 +73,7 @@ def main():
     if not isinstance(groups,list) or not groups:ap.error('Plan must be a nonempty list')
     for g in groups:
         if not isinstance(g.get('T'),int) or g['T']<=0 or not g.get('compositions') or set(g['compositions'])-set(COMPS):ap.error('Each group needs positive integer T and supported compositions')
+        if any(not isinstance(g[k], (int, float)) or not math.isfinite(g[k]) or g[k] <= 0 for k in ('ps', 'eq') if k in g):ap.error('ps and eq must be positive finite numbers')
         if 'volumes' in g and 'pressures_GPa' in g:ap.error('Choose volumes or pressures_GPa, not both')
         if 'pressures_GPa' in g and (not g['pressures_GPa'] or any(not math.isfinite(p) or p<=0 for p in g['pressures_GPa'])):ap.error('Pressures must be positive and finite')
     tokens=os.environ.get('CUDA_VISIBLE_DEVICES','').split(',')
@@ -105,6 +106,8 @@ def main():
                 NGPU=str(ng),PER_GPU=str(a.per_gpu),NV=str(g.get('nv',16)),VPA_JSON=json.dumps(volumes),
                 NEARBY_START='1',PLOT='braille',REFRESH='10',OMP_NUM_THREADS='1',EOS_QUEUE=json.dumps(schedule),
                 EOS_REPO_ROOT=str(ROOT),EOS_CODE_DIR=str(ROOT/'mlp_pipeline'))
+            for key in ('ps', 'eq'):
+                if key in g: env[key.upper()]=str(g[key])
             child=subprocess.Popen(['bash','mlp_pipeline/eos_live.sh'],env=env)
             rc=child.wait();schedule[idx]['state']='done' if rc==0 else 'failed'
             if rc:raise SystemExit('Group failed; inspect its logs before resuming the queue.')

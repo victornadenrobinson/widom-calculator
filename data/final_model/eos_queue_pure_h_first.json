@@ -1,0 +1,8 @@
+[
+  {"T": 2000, "compositions": ["h"], "nv": 16, "eq": 1.0, "ps": 2.0},
+  {"T": 3000, "compositions": ["h"], "nv": 16, "eq": 1.0, "ps": 2.0},
+  {"T": 3000, "compositions": ["h2o", "h2.25", "h3o", "h5o", "h7o"], "nv": 16},
+  {"T": 6000, "compositions": ["h2o", "h2.25", "h3o", "h5o", "h7o", "h"], "nv": 16},
+  {"T": 8000, "compositions": ["h2o", "h2.25", "h3o", "h5o", "h7o", "h"], "nv": 16},
+  {"T": 9000, "compositions": ["h2o", "h2.25", "h3o", "h5o", "h7o", "h"], "nv": 16}
+]

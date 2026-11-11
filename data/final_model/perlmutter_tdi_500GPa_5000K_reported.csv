@@ -1,0 +1,5 @@
+system,phase,N,T_K,P_target_GPa,nodes,production_ps_per_node,G_meV_per_atom,stat_error_meV_per_atom,drift_meV_per_atom,P_high_lambda_GPa,dG_P2_meV_per_atom,source
+H,fluid,729,5000,500,17,2.0,1060.71,0.73,0.33,501.93,-0.01,runs/tdi_final/H_500GPa_5000K_N729_stage0.json
+H2O,fcc,324,5000,500,17,2.0,2296.32,1.86,-0.31,503.90,-0.07,runs/tdi_final/fcc_500GPa_5000K_stage0.json
+H2.25O,fcc,351,5000,500,17,2.0,2248.20,1.61,1.31,503.08,-0.05,runs/tdi_final/fcc_500GPa_5000K_h2.25o_stage0.json
+H2.25O,liquid,104,5000,500,17,2.0,2234.51,6.23,4.55,496.73,-0.05,runs/tdi_final/liquid_500GPa_5000K_h2.25o_stage0.json

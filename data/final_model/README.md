@@ -37,3 +37,23 @@ When adding a dataset, preserve source precision and record the source path,
 model identity, system, thermodynamic conditions, method, units, collection date,
 uncertainty and known limitations. Store large trajectories, model weights and
 checkpoints outside Git; keep these files as compact, reproducible summaries.
+
+`perlmutter_tdi_500GPa_5000K_reported.csv` transcribes the four rows
+of the user's `tdi/summarize.py runs/tdi_final/` output. Statistical errors,
+drift and pressure diagnostics are as printed; pressure corrections are not
+applied. These are short, preliminary runs and the listed errors are not total
+uncertainty. The stage0 metadata recorded `grace-ft:runs/grace/ft_mfinkc_cont`.
+
+## Evidence on the six-composition 7000 K EOS figure
+
+The figure shared in chat has no model identifier. The repository handoff
+(`docs/HANDOFF.md`, EOS section) reports six-composition 7000 K EOS work with
+`mfin_f_lr1e-2_e50`, followed by a plan to rerun with `mfinkc_cont`. This makes
+the older model a plausible source, but the figure is not uniquely identified.
+The user's Perlmutter inventory separately found final-model 7000 K directories
+for H2O, H3O and H and logs naming the final model. Its final-model 1000/2000 K
+directories have all six compositions, but names alone do not establish
+completed pressure points or liquid phase. The shared Claude conversation says
+that pending EOS jobs were to be cancelled and moved to Young; it does not prove
+which specific jobs completed. Figure-only points must not be relabelled as
+final-model results or used as precise numerical EOS data.

@@ -11,6 +11,7 @@ import numpy as np
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+from eos_literature import overlay
 
 ROOT = Path(__file__).resolve().parents[1]
 COMPS = ('h2o', 'h2.25', 'h3o', 'h5o', 'h7o', 'h')
@@ -81,9 +82,12 @@ def main():
         ordered=[r for r in rows if r['structure'] in ('bcc','fcc','hcp')]
         ax.scatter([r['P'] for r in normal],[r['T'] for r in normal],s=24,color='tab:blue',label='Reported EOS point',zorder=3)
         ax.scatter([r['P'] for r in ordered],[r['T'] for r in ordered],s=45,marker='x',color='firebrick',label='Ordered O reported',zorder=4)
-        ax.set(title=c.upper(),xlim=(0,520),ylim=(500,9500),xlabel='Pressure (GPa)',ylabel='Temperature (K)')
+        overlay(ax,c)
+        ax.set(title=c.upper(),xlim=(0,560),ylim=(500,9500),xlabel='Pressure (GPa)',ylabel='Temperature (K)')
         ax.grid(alpha=.15)
-    axes[0,0].legend(fontsize=8,loc='lower right')
+    for ax in axes.flat:
+        handles, labels = ax.get_legend_handles_labels()
+        if labels: ax.legend(fontsize=7,loc='lower right')
     fig.suptitle('Liquid EOS state-point plan: all six compositions\nFilled points = available reported data, not certification of liquid phase; live Young results require --root')
     for ext in ('.png','.pdf'): fig.savefig(str(out)+ext,dpi=160)
     if energies:

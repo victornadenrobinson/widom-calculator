@@ -8,6 +8,7 @@ import sys
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+from eos_literature import overlay
 from eos_volume_table import usable
 
 COMPS = ('h2o', 'h2.25', 'h3o', 'h5o', 'h7o', 'h')
@@ -43,7 +44,11 @@ def main():
                 counts.append((str(f), len(good), len(other)))
         for p in (100, 200, 350, 500): ax.axvline(p, color='0.85', lw=.7)
         for T in (3000, 5000, 7000): ax.axhline(T, color='0.92', lw=.7)
-        ax.set(title=comp, xlim=(0, 520), ylim=(0, 9500), xlabel='Pressure (GPa)', ylabel='Temperature (K)')
+        overlay(ax,comp)
+        ax.set(title=comp, xlim=(0, 560), ylim=(0, 9500), xlabel='Pressure (GPa)', ylabel='Temperature (K)')
+    for ax in axes.flat:
+        handles, labels = ax.get_legend_handles_labels()
+        if labels: ax.legend(fontsize=7)
     fig.suptitle('Final-model EOS: blue circles pass preliminary liquid screening; red crosses fail or lack data\nShading: approximate requested region (not a phase boundary); points do not prove phase')
     out = Path(args.out); out.parent.mkdir(parents=True, exist_ok=True)
     for ext in ('.png','.pdf'): fig.savefig(str(out)+ext, dpi=160)

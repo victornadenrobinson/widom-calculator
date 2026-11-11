@@ -460,3 +460,52 @@ bash mlp_pipeline/eos_live.sh
 ```
 
 Unset VPA_JSON (or do not pass it) for the usual broad-volume 5000 K scan.
+
+### Nearby liquid starting frames and interactive EOS campaign queue
+
+New `eos_live.sh` launches enable `NEARBY_START=1` by default (set 0 to force
+fresh builds). On starting each volume, the MD script looks for completed EOS
+rows and final.extxyz under `runs/eos_live`: matching model tag, atom count and
+H/O count; same T or up to 2000 K hotter; <=20% change of volume per atom.
+It requires mobile H (and O for mixtures), the existing basic liquid quality
+checks, and <=20% close-HH frames. Loaded frames must be cubic, periodic and
+consistent with their recorded volume. After scaling, contacts are checked again.
+Sources are screened candidates, not independently proven equilibrium liquids.
+Model tags do not establish immutable checkpoint identity for legacy outputs.
+
+It writes `start.extxyz` and `start_provenance.json` with source path, frame hash,
+source state and scaling. Fresh target-temperature velocities and normal
+equilibration are always used. A reused liquid skips premelting; no acceptable
+source means the original build/premelt route. Saved source frames are untouched.
+An interrupted EOS volume still restarts rather than extending its partial time
+series. Independent starts and reverse scans remain useful near phase boundaries.
+
+To run a sequence without manually restarting each temperature, after the current
+interactive scan finishes:
+
+```bash
+cd /lustre/scratch/mmm0037/H3O &&
+git pull --ff-only origin gpt/youthful-jolly-review &&
+"$HOME/grace-venv/bin/python" mlp_pipeline/eos_queue.py \
+  data/final_model/eos_queue_next.json --gpus 4 --run
+```
+
+Omit `--run` to preview. The provided plan does the additional mixtures at 5000 K,
+then all six compositions at 6000, 8000 and 9000 K. Each group uses the allocated
+GPUs before advancing. The live braille graph has a queue beside it on wide
+terminals. Estimates use historical per-worker timing and are labelled initial
+estimates: hardware/sharing, startup, tail and already-saved rows change them.
+Missing timing data displays unknown. Four workers/GPU remains the default.
+The queue uses the same composition/temperature locks as the batch campaign;
+stop other direct eos_live writers before starting it.
+
+Each JSON group has `T`, `compositions`, and either `nv` (a broad volume grid),
+`volumes` (composition-to-volume-list mapping), or `pressures_GPa` (shared target
+pressures). Pressure targets require same-T, same-size, screened final-model EOS
+brackets, with no extrapolation; the resulting measured P is not constrained.
+The supplied grid covers a broad volume range, not only the drawn P/T outline.
+
+The queue ends with the allocation; it does not extend Slurm walltime. On a
+new allocation, rerun the same command to skip completed volume rows and continue.
+A failure or locked group stops with its reason instead of silently advancing.
+Do not update the repo during a queue: later workers load its scripts at launch.

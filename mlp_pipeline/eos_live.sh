@@ -71,6 +71,7 @@ for c in COMPS:
         vmax = float(E("VMAX")) if E("VMAX") else round((3 * 10 + (h - 2) * 8) / (1 + h), 3); vmin = float(E("VMIN")) if E("VMIN") else round((3 * 1.75 + (h - 2) * 0.9) / (1 + h), 3)
         ps, eq, pm = float(E("PS", "0.75")), float(E("EQ", "0.25")), float(E("PM_PS", "0.25"))
         sysargs = ["--phase", "bcc", "--branch", "liquid", "--hper", f"{h:g}", "--nrep", str(nrep), "--premelt-T", PM_T, "--premelt-ps", str(pm)]; desc = f"{NAME[c]} liquid, {nat} atoms (premelt {PM_T} K {pm} ps)"
+    if E("NEARBY_START", "1") == "1": sysargs += ["--nearby-start", "--seed-root", E("SEED_ROOT", "runs/eos_live")]
     tag = f"{mname}_{c}_{T}K_{nat}at"; D = os.path.join("runs", "eos_live", tag); os.makedirs(D, exist_ok=True)
     C[c] = dict(fu=fu, nat=nat, ps=ps, eq=eq, pm=pm, tag=tag, D=D, mpa=1.008 if c == "h" else (15.999 + 1.008 * h) / (1 + h))
     done_v = set()
@@ -201,7 +202,18 @@ while True:
         out.append(f"{NAME[c]:7s} {j['vpa']:6.3f} {j['gpu']:>3d}  [{bar}] {st['stage'][:8]:8s} {st['T']:>6s} {st['P']:>8s} {st['Pe']:>5s} {(f'{pd_:7.1f}' if pd_ == pd_ else f'{chr(45):>7s}')} {dps} {st['ms']:>5s} {st['eta']:>6s}"
                    + (f"  {st['stage']}" if st["stage"].startswith("FAILED") else ""))
     room = th - 2 - len(out) - 7                                           # rows left for the plot canvas (title, legend, axis label, x axis and its labels take ~7 lines)
-    if E("PLOT", "braille") == "braille" and room >= 6: out += [""] + plot(min(18, room))
+    if E("PLOT", "braille") == "braille" and room >= 6:
+        drawing = plot(min(18, room))
+        queue = json.loads(E("EOS_QUEUE", "[]"))
+        panel = ["EOS CAMPAIGN QUEUE", "T (K) | compositions | state | initial estimate"]
+        for q in queue:
+            eta = "unknown" if q.get('seconds') is None else "~" + duration(q['seconds'])
+            panel += [f"{q['T']} | {q['comp']}", f"  {q['state']} | {eta} | {q['pressure']}"]
+        if queue and tw >= 150:
+            width = max([len(VIS.sub('', l)) for l in drawing] or [0]) + 3
+            out += [""] + [(drawing[i] + ' '*(width-len(VIS.sub('', drawing[i]))) if i<len(drawing) else ' '*width) + (panel[i] if i<len(panel) else '') for i in range(max(len(drawing),len(panel)))]
+        else:
+            out += [""] + (panel if queue else []) + drawing
     elif E("PLOT", "braille") == "braille": out.append(f"(plot hidden: terminal too short by {6 - room} lines; enlarge the window or use NV / fewer compositions)")
     out = [fit(l, tw) for l in out][: max(10, th - 2)]                     # never wider or taller than the terminal
     if prev: sys.stdout.write(f"\x1b[{prev}A")

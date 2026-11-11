@@ -9,7 +9,7 @@ D_H, D_O: slope of the MSD over the second half of production (A^2/fs * 0.1 = cm
 """
 import os as _os; _os.environ.setdefault("TF_FORCE_GPU_ALLOW_GROWTH", "true")   # several processes can share one GPU (TensorFlow otherwise takes nearly all of its memory in the first one)
 
-import argparse, os, time
+import argparse, json, os, time
 from importlib import import_module
 import numpy as np
 import pandas as pd
@@ -182,9 +182,20 @@ def run_one(a, calc, vpa, tag):
     d = os.path.join(a.outdir, f"{tag}_v{vpa:.4f}"); os.makedirs(d, exist_ok=True)
     for stale in ("traj.extxyz", "thermo.csv", "final.extxyz"):              # a killed earlier run of this volume: start clean (traj.extxyz is appended to during the run)
         if os.path.exists(os.path.join(d, stale)): os.remove(os.path.join(d, stale))
+    seed_info = dict(method='fresh_build_premelt')
+    if getattr(a, 'nearby_start', False) and a.branch in ('liquid', 'fluid'):
+        from eos_seed import nearby_liquid
+        model_name = os.path.basename(a.model.split(':', 1)[-1].rstrip('/'))
+        seeded, seed_info = nearby_liquid(a.seed_root, model_name, N, nO, a.T, vpa, exclude=d)
+        if seeded is not None:
+            at = seeded; at.calc = calc
+        print(f"START: {seed_info}", flush=True)
+    with open(os.path.join(d, 'start_provenance.json'), 'w') as f:
+        json.dump(seed_info, f, indent=2)
+    write(os.path.join(d, 'start.extxyz'), at)
     t0_hold = time.time()
     MaxwellBoltzmannDistribution(at, temperature_K=a.T, force_temp=True); Stationary(at)
-    if a.branch == "liquid":   # liquid branch: melt the O lattice at a high temperature first, then cool to T (the melting is checked afterwards: O_struct / D_O in the RESULT line)
+    if a.branch == "liquid" and seed_info["method"] != "nearby_liquid":   # liquid branch: melt the O lattice at a high temperature first, then cool to T (the melting is checked afterwards: O_struct / D_O in the RESULT line)
         MaxwellBoltzmannDistribution(at, temperature_K=a.premelt_T, force_temp=True); Stationary(at)
         print(f"  {tag} vpa {vpa:.3f} premelt {a.premelt_T:.0f} K for {a.premelt_ps} ps ...", flush=True)
         thermostat(at, a.premelt_T, a.dt, a.tau).run(int(a.premelt_ps * 1000 / a.dt))
@@ -192,6 +203,8 @@ def run_one(a, calc, vpa, tag):
         print(f"  {tag} vpa {vpa:.3f} premelt done: T {Tchk:.0f} K ({time.time() - t0_hold:.0f} s)", flush=True)
         if not Tchk < 3 * a.premelt_T: raise RuntimeError(f"{tag}: MD exploded during the {a.premelt_T:.0f} K premelt (T = {Tchk:.3g} K): use a smaller --dt, a lower --premelt-T, or check the starting volume")
         MaxwellBoltzmannDistribution(at, temperature_K=a.T, force_temp=True); Stationary(at)
+    if seed_info["method"] == "nearby_liquid":
+        print(f"  {tag} vpa {vpa:.3f} premelt done: reused liquid; normal equilibration follows", flush=True)
     if a.hold_O_ps > 0 and nO > 0 and a.branch == "solid":   # H thermalises in the fixed O lattice first (O held on its sites, zero velocity), then O is released with Maxwell-Boltzmann velocities; not counted in equil / production
         from ase.constraints import FixAtoms
         iO = at.numbers == 8; p = at.get_momenta(); p[iO] = 0; at.set_momenta(p, apply_constraint=False); at.set_constraint(FixAtoms(mask=iO))
@@ -310,6 +323,8 @@ if __name__ == "__main__":
     ap.add_argument("--min-runs", type=int, default=20, help="minimum number of DFT runs per 1000 K bin for the volume lookup")
     ap.add_argument("--only", type=int, default=None, help="run only volume index k (for a Slurm array)")
     ap.add_argument("--tag", default=None); ap.add_argument("--outdir", default=None); ap.add_argument("--device", default="cuda")
+    ap.add_argument("--nearby-start", action="store_true", help="reuse a screened nearby liquid frame; otherwise build/premelt normally")
+    ap.add_argument("--seed-root", default="runs/eos_live")
     ap.add_argument("--natoms", type=int, default=0, help="phase H: pure-H cell with this many atoms (e.g. 729) instead of 2*nrep^3")
     a = ap.parse_args()
     a.nrep = a.nrep or (5 if a.phase == "H" else CELL[a.phase][2]); a.outdir = a.outdir or outp("eos_md"); os.makedirs(a.outdir, exist_ok=True)

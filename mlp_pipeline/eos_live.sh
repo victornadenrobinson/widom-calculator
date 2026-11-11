@@ -102,6 +102,11 @@ def launch():
         p = subprocess.Popen(j["cmd"], stdout=open(j["log"], "w"), stderr=subprocess.STDOUT, env=dict(os.environ, CUDA_VISIBLE_DEVICES=GPU_IDS[g]))
         procs[p.pid] = p; j.update(state="running", pid=p.pid, gpu=g); load[g] += j["cost"]; cnt[g] += 1
 
+def duration(seconds):
+    seconds = max(0, int(round(seconds)))
+    h, rem = divmod(seconds, 3600); m, sec = divmod(rem, 60)
+    return f"{h}h{m:02d}m" if h else (f"{m}m{sec:02d}s" if m else f"{sec}s")
+
 STEP = re.compile(r"step (\d+)/(\d+)\s+\[(.*?), (\d+) pts\]\s+T (\d+) K\s+P ([-\d.]+) \+- ([-\w.]+) GPa\s+\(now T (\d+) P ([-\d.]+)\)\s+(\d+) ms/step")
 def update(j):
     """parse the job's log: stage, progress fraction, T, P, error, ms/step, ETA; result dict and final state when the process has ended"""
@@ -112,7 +117,7 @@ def update(j):
     m = STEP.findall(txt)
     if m:
         s, n, ph, npts, Tt, P, Pe, Tn, Pn, ms = m[-1]; s, n = int(s), int(n)
-        st.update(stage="prod" if ph.startswith("prod") else "equil", frac=(c["pm"] + (c["eq"] + c["ps"]) * s / n) / tot, T=Tt, P=P, Pe=Pe, ms=ms, eta=f"{(n - s) * int(ms) / 1000:.0f}s")
+        st.update(stage="prod" if ph.startswith("prod") else "equil", frac=(c["pm"] + (c["eq"] + c["ps"]) * s / n) / tot, T=Tt, P=P, Pe=Pe, ms=ms, eta=duration((n - s) * int(ms) / 1000))
     p = procs.get(j["pid"]); ended = p is not None and p.poll() is not None
     if "RESULT" in txt:
         r = re.sub(r"np\.\w+\(([^()]*)\)", r"\1", txt.split("RESULT", 1)[1].strip().splitlines()[0])   # numpy 2 prints np.float64(...)
@@ -172,7 +177,7 @@ while True:
     for j in jobs:
         if j["state"] == "running": update(j)                              # update() also sets done / failed when the process has ended
     sz = shutil.get_terminal_size((160, 50)); tw, th = max(40, sz.columns - 1), sz.lines
-    out = [f"elapsed {time.time() - t0:5.0f} s   {gpus()}"]
+    out = [f"elapsed {duration(time.time() - t0):>7s}   {gpus()}"]
     for c in COMPS:
         js = [j for j in jobs if j["comp"] == c]; n = lambda s: sum(1 for j in js if j["state"] == s)
         out.append(f"  {NAME[c]:7s} done {n('done'):2d}  running {n('running'):2d}  queued {n('queued'):2d}  failed {n('failed'):2d}   -> {C[c]['D']}")
@@ -194,7 +199,7 @@ while True:
     time.sleep(REF)
 
 # ---- final tables with flags, throughput
-print(f"\nall {len(jobs)} jobs finished in {time.time() - t0:.0f} s")
+print(f"\nall {len(jobs)} jobs finished in {duration(time.time() - t0)}")
 def num(r, k):
     """value or nan (None = nan in the RESULT line; 0.0 is a real value, not missing)"""
     v = r.get(k); return float("nan") if v is None else float(v)

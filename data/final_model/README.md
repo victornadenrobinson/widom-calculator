@@ -156,3 +156,37 @@ completed pressure points or liquid phase. The shared Claude conversation says
 that pending EOS jobs were to be cancelled and moved to Young; it does not prove
 which specific jobs completed. Figure-only points must not be relabelled as
 final-model results or used as precise numerical EOS data.
+
+## Explicit liquid EOS target grid
+
+`eos_liquid_targets.csv` lists 468 planning targets across all six compositions.
+Temperatures are spaced by 1000 K and pressures use 10, 25, 50, 75, 100, 150,
+200, 250, 300, 350, 400, 450, 500 GPa, restricted by the approximate drawn lower
+boundary. All rows are targets, not completion claims. Existing volume scans
+can provide bracketing points; this is not an instruction to submit 468 new MD
+runs. Refine near melting, demixing and the paper window as needed.
+
+Reproduce the plan plot and overlay locally available final-model summary CSVs:
+
+```bash
+python mlp_pipeline/eos_state_plan.py --root runs/eos_live --out runs/plots/eos_state_plan
+```
+
+Open circles show planned P,T; filled blue circles show reported EOS results at
+measured P and set T, red crosses show ordered oxygen labels. The plot includes
+the rounded Perlmutter table, and local roots add full EOS tables. Observations
+are not snapped to targets or automatically certified as converged liquids.
+Young results and Perlmutter results not yet copied into the repository are
+otherwise absent. Known 1000/2000 K directories have no plotted points until
+numerical pressure rows are supplied.
+
+The command also writes an energy CSV/plot when full local EOS tables are
+available. Existing summary tables save `epot_per_atom`; per-volume `thermo.csv`
+saves whole-cell `epot` and `ekin` versus time. The energy report recovers mean
+nuclear kinetic energy using the writer's temperature convention
+`K/N = 3*(N-1)*kB*T_mean/(2*N)` and reports `epot + K` per atom. This is the
+model potential plus classical nuclear kinetic energy. Since the model's DFT
+labels can be electronic free energies (TOTEN), an electronic entropy correction
+may be needed to interpret it as thermodynamic internal energy for Hugoniots.
+No such correction or energy-reference alignment is silently applied. Missing
+energy columns are omitted, never imputed from the rounded timing transcription.

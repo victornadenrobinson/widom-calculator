@@ -509,3 +509,11 @@ The queue ends with the allocation; it does not extend Slurm walltime. On a
 new allocation, rerun the same command to skip completed volume rows and continue.
 A failure or locked group stops with its reason instead of silently advancing.
 Do not update the repo during a queue: later workers load its scripts at launch.
+
+The EOS queue panel also shows a whole-campaign remaining-time estimate. It
+uses observed per-step timings and remaining work for the active group, plus
+historical full-group estimates for waiting groups. It includes an approximate
+finish clock time; startup, GPU sharing changes, phase changes and already-saved
+future rows can shift it. If a waiting group has no timing history it reports
+unknown rather than silently omitting that work. This estimate is not a Slurm
+walltime guarantee.

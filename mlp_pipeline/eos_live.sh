@@ -183,6 +183,39 @@ def plot(rows=18):
     leg = "  ".join(fg(PAL[CI[i % 6]], "● " + NAME[c]) for i, c in enumerate(COMPS)) + "  " + fg(PAL[11], "— DFT") + "   (block = done, dot = running)"
     return frame(cv, (xlo, xhi), (ylo, yhi), "log10 P (GPa)   [1 = 10, 2 = 100, 3 = 1000 GPa]", "V per formula unit (A^3)", f"EOS at {T} K: model vs DFT", legend=leg).split("\n")
 
+def campaign_remaining(queue):
+    """Approximate active-group makespan plus historical future-group costs."""
+    ratios = []
+    for j in jobs:
+        st = j.get('st', {})
+        if st.get('ms') and st.get('frac', 0) >= .05:
+            c = C[j['comp']]
+            steps = (c['pm'] + c['eq'] + c['ps']) * 2000
+            ratios.append(float(st['ms']) / 1000 * steps / j['cost'])
+    current = next((q for q in queue if q['state'] == 'running'), None)
+    remaining = [j for j in jobs if j['state'] not in ('done', 'failed')]
+    if not remaining:
+        active_seconds = 0.
+    elif ratios:
+        ratio = float(np.median(ratios))
+        loads = [0.] * (NG * PER)
+        for j in sorted(remaining, key=lambda j: j['state'] != 'running'):
+            seconds = j['cost'] * ratio * (1 - j.get('st', {}).get('frac', 0.))
+            slot = min(range(len(loads)), key=lambda k: loads[k])
+            loads[slot] += max(0., seconds)
+        active_seconds = max(loads)
+    elif current and current.get('seconds') is not None:
+        total_cost = sum(j['cost'] for j in jobs)
+        active_seconds = current['seconds'] * sum(j['cost'] * (1-j.get('st',{}).get('frac',0)) for j in remaining) / total_cost
+    else:
+        active_seconds = None
+    future = [q for q in queue if q['state'] == 'waiting']
+    if active_seconds is None or any(q.get('seconds') is None for q in future):
+        return 'Campaign ETA: unknown (insufficient timing history)'
+    seconds = active_seconds + sum(q['seconds'] for q in future)
+    end = time.strftime('%H:%M', time.localtime(time.time()+seconds))
+    return f'Campaign ETA: ~{duration(seconds)} remaining (~{end}); provisional'
+
 t0 = time.time(); prev = 0
 while True:
     launch()
@@ -205,7 +238,9 @@ while True:
     if E("PLOT", "braille") == "braille" and room >= 6:
         drawing = plot(min(18, room))
         queue = json.loads(E("EOS_QUEUE", "[]"))
-        panel = ["EOS CAMPAIGN QUEUE", "T (K) | compositions | state | initial estimate"]
+        panel = ["EOS CAMPAIGN QUEUE", campaign_remaining(queue),
+                 "Startup/phase changes/GPU contention may shift ETA",
+                 "T (K) | compositions | state | initial estimate"]
         for q in queue:
             eta = "unknown" if q.get('seconds') is None else "~" + duration(q['seconds'])
             panel += [f"{q['T']} | {q['comp']}", f"  {q['state']} | {eta} | {q['pressure']}"]

@@ -205,3 +205,16 @@ rows are permitted only as volume guesses, not certified EOS or free-energy
 inputs. These are additional points, not extensions or replacements of flagged
 runs. The original short H2O high-pressure runs retain bcc oxygen order and do
 not establish liquid coverage; their bcc starting lattice may not have melted.
+
+### H3O volume override at 350 GPa / 7000 K
+
+`tdi_volume_override_h3o_350GPa_7000K.csv` supplies a provisional H3O
+starting volume to `young_liquid_campaign.py --volumes`. It is an interpolation
+in log pressure between the rounded Perlmutter final-model EOS rows at 271.4
+and 373.0 GPa in `perlmutter_eos_7000K_reported.csv`. It is not a DFT EOS row
+or a measured 350 GPa state. The underlying trajectories were short and their
+phase has not been certified. Check original full-precision data, model weights,
+liquid phase and the TDI measured pressure; do not silently apply a pressure
+correction. The override unblocks planning but does not itself submit a job.
+The campaign's `--submit` submits *all* ready states, not just this override;
+check existing Slurm jobs before using it to avoid duplicates.

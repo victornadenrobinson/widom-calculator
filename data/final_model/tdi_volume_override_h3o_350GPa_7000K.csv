@@ -1,0 +1,2 @@
+system,P_GPa,T_K,vpa_A3,source,bracket_GPa
+h3o,350,7000,2.27088342,"log-pressure interpolation from rounded Perlmutter final-model EOS; 271.4 GPa at 2.4994 A3/atom and 373.0 GPa at 2.2137 A3/atom",271.4..373.0

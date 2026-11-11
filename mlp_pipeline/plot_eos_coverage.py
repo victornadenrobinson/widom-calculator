@@ -11,6 +11,9 @@ import matplotlib.pyplot as plt
 from eos_volume_table import usable
 
 COMPS = ('h2o', 'h2.25', 'h3o', 'h5o', 'h7o', 'h')
+# Approximate planning outline traced from the user's figure, not a phase boundary.
+TARGET_P = (10, 100, 150, 200, 300, 400, 500)
+TARGET_T = (1000, 1900, 3000, 3700, 4800, 5900, 6700)
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
@@ -20,6 +23,8 @@ def main():
     fig, axes = plt.subplots(2, 3, figsize=(14, 8), sharex=True, sharey=True, layout='constrained')
     counts = []
     for ax, comp in zip(axes.flat, COMPS):
+        ax.fill_between(TARGET_P, TARGET_T, 9000, color='lightblue', alpha=.25, zorder=0)
+        ax.plot(TARGET_P, TARGET_T, color='steelblue', ls='--', lw=1)
         for root in args.roots:
             for d in sorted(Path(root).glob(f'ft_mfinkc_cont_{comp}_*K_*at')):
                 f = d / (d.name + '.csv')
@@ -38,8 +43,8 @@ def main():
                 counts.append((str(f), len(good), len(other)))
         for p in (100, 200, 350, 500): ax.axvline(p, color='0.85', lw=.7)
         for T in (3000, 5000, 7000): ax.axhline(T, color='0.92', lw=.7)
-        ax.set(title=comp, xscale='log', xlabel='Pressure (GPa)', ylabel='Temperature (K)')
-    fig.suptitle('Final-model EOS: blue circles pass preliminary liquid screening; red crosses fail or lack data\nPoints do not prove phase or pressure coverage between samples')
+        ax.set(title=comp, xlim=(0, 520), ylim=(0, 9500), xlabel='Pressure (GPa)', ylabel='Temperature (K)')
+    fig.suptitle('Final-model EOS: blue circles pass preliminary liquid screening; red crosses fail or lack data\nShading: approximate requested region (not a phase boundary); points do not prove phase')
     out = Path(args.out); out.parent.mkdir(parents=True, exist_ok=True)
     for ext in ('.png','.pdf'): fig.savefig(str(out)+ext, dpi=160)
     with open(str(out)+'.csv','w',newline='') as f:

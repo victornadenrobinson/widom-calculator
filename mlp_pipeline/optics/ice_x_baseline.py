@@ -98,9 +98,17 @@ def plot(a):
             except ValueError:pass
             e.clear()
     if not matches:raise SystemExit('No complete dielectricfunction tensor found in vasprun.xml; inspect the VASP run and LOPTICS output.')
-    if len(matches)!=1:
-        raise SystemExit(f'Found {len(matches)} dielectric tensors ({[m[0] for m in matches]}); inspect XML and select the intended optical response before processing.')
-    comment,re_,im_=matches[0];re_=np.array(re_);im_=np.array(im_)
+    if len(matches)==2 and all(not m[0] for m in matches):
+        if not a.tensor:raise SystemExit('Two unlabelled tensors: VASP 5.4.4 convention is density first, current second; verify OUTCAR and pass --tensor density or current.')
+        index_selected = {'density': 0, 'current': 1}[a.tensor]
+        comment,re_,im_=matches[index_selected]
+        comment = a.tensor + '-response (unlabelled XML; verify OUTCAR ordering)'
+    elif len(matches)==1:
+        comment,re_,im_=matches[0]
+        if a.tensor: print('Only one dielectric tensor; selected response:', a.tensor)
+    else:
+        raise SystemExit(f'Found {len(matches)} dielectric tensors ({[m[0] for m in matches]}); inspect XML before processing.')
+    re_=np.array(re_);im_=np.array(im_)
     if re_.shape!=im_.shape or not np.allclose(re_[:,0],im_[:,0]):raise SystemExit('Real and imaginary dielectric grids differ')
     energy=re_[:,0]; mask=(energy>0)&np.isfinite(energy)
     energy=energy[mask];re_=re_[mask];im_=im_[mask]
@@ -115,7 +123,7 @@ def plot(a):
         for i,E in enumerate(energy):w.writerow([E,HC/E,eps[i].real,eps[i].imag,index[i].real,index[i].imag]+[refl[n][i] for n in ns])
     fig,ax=plt.subplots(figsize=(8,5),layout='constrained')
     for n in ns:ax.plot(energy,refl[n],label=f'n₀ = {n:g}')
-    ax.set(xlim=(.5,min(5,float(energy[-1]))),ylim=(0,1),xlabel='Photon energy (eV)',ylabel='Normal-incidence reflectivity',title='Perfect ice X: exploratory independent-particle optics')
+    ax.set(xlim=(.5,min(5,float(energy[-1]))),ylim=(0,1),xlabel='Photon energy (eV)',ylabel='Normal-incidence reflectivity',title=f'Perfect ice X: {comment or "dielectric"} optics')
     ax.grid(alpha=.2);ax.legend(title='Incident index')
     for ext in ('png','pdf'):fig.savefig(str(out)+'.'+ext,dpi=160)
     print(f'Wrote {out}.csv/.png/.pdf; dielectric response: {comment or "unspecified"}.')
@@ -128,7 +136,7 @@ def plot(a):
 def main():
     p=argparse.ArgumentParser(description=__doc__);sub=p.add_subparsers(dest='cmd',required=True)
     q=sub.add_parser('prepare');q.add_argument('--potcar',required=True);q.add_argument('--out',required=True);q.add_argument('--vpa',type=float,default=2.24);q.add_argument('--temperature',type=float,default=7000);q.add_argument('--mesh',type=int,default=8);q.add_argument('--nbands',type=int,default=64)
-    q=sub.add_parser('plot');q.add_argument('xml');q.add_argument('--out',required=True)
+    q=sub.add_parser('plot');q.add_argument('xml');q.add_argument('--out',required=True);q.add_argument('--tensor',choices=['density','current'],help='select VASP 5.4.4 density or current response')
     a=p.parse_args()
     if a.cmd=='prepare':
         if a.vpa<=0 or a.temperature<=0 or a.mesh<1 or a.nbands<16:p.error('Invalid preparation arguments')

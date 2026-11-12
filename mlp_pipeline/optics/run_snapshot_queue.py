@@ -67,7 +67,8 @@ def analyse(case,work,plotter,py,origin):
         if not (prefix.with_suffix('.csv')).exists():subprocess.run(cmd,check=True)
         results[tensor]=interpolated(str(prefix)+'.csv',1.52)
     info=json.loads((case/'provenance.json').read_text())
-    print(f"RESULT {info['composition']} GRACE mean P={info['pressure_mean_GPa']:.2f} GPa frame={info['frame_index_zero_based']} | 532nm n0=1.52 density={100*results['density']:.3f}% current={100*results['current']:.3f}% | {origin}",flush=True)
+    source_label = "DFT-MD source mean" if info.get("source_kind") == "DFT-MD OUTCAR segment" else "GRACE mean"
+    print(f"RESULT {info['composition']} {source_label} P={info['pressure_mean_GPa']:.2f} GPa frame={info['frame_index_zero_based']} | 532nm n0=1.52 density={100*results['density']:.3f}% current={100*results['current']:.3f}% | {origin}",flush=True)
     return results
 
 

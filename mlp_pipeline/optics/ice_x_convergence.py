@@ -12,9 +12,12 @@ import shutil
 TESTS = {
     'cold300K': {'SIGMA': '0.025852'},
     'cold300K_bands128': {'SIGMA': '0.025852', 'NBANDS': '128'},
+    'cold300K_bands192': {'SIGMA': '0.025852', 'NBANDS': '192'},
     'cold300K_mesh10_bands128': {'SIGMA': '0.025852', 'NBANDS': '128', 'mesh': 10},
     'cold300K_encut1200_mesh10_bands128': {'SIGMA': '0.025852', 'NBANDS': '128', 'mesh': 10, 'ENCUT': '1200'},
     'cold300K_cshift005_mesh10_bands128': {'SIGMA': '0.025852', 'NBANDS': '128', 'mesh': 10, 'CSHIFT': '0.05'},
+    'cold300K_nedos6000_mesh10_bands128': {'SIGMA': '0.025852', 'NBANDS': '128', 'mesh': 10, 'NEDOS': '6000'},
+    'cold300K_kpar1_mesh10_bands128': {'SIGMA': '0.025852', 'NBANDS': '128', 'mesh': 10, 'KPAR': '1'},
     'bands128': {'NBANDS': '128'},
     'mesh10_bands128': {'NBANDS': '128', 'mesh': 10},
     'encut1200_mesh10_bands128': {'NBANDS': '128', 'mesh': 10, 'ENCUT': '1200'},

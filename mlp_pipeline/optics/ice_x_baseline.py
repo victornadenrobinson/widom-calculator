@@ -138,6 +138,15 @@ def plot(a):
     outcar=Path(a.outcar) if a.outcar else Path(a.xml).with_name('OUTCAR')
     pressure=vasp_pressure(outcar)
     p_text=f'{pressure:.2f} GPa' if pressure is not None else 'pressure unavailable'
+    provenance=Path(a.xml).with_name('provenance.json')
+    if provenance.is_file():
+        try:
+            info=json.loads(provenance.read_text())
+            sample_title=f"EOS snapshot {info.get('composition', 'mixture')}"
+        except (OSError,ValueError):
+            sample_title='EOS snapshot'
+    else:
+        sample_title='Perfect ice X'
     labels={1.0:'Vacuum',1.3:'Clathrate scenario: lower guess',1.5:'Clathrate scenario: upper guess',1.52:'Ice VII (Millot)',1.7:'High-index sensitivity'}
     ns=list(labels)
     refl={n:np.abs((index-n)/(index+n))**2 for n in ns}
@@ -146,11 +155,13 @@ def plot(a):
         for i,E in enumerate(energy):w.writerow([pressure if pressure is not None else '',E,HC/E,eps[i].real,eps[i].imag,index[i].real,index[i].imag]+[refl[n][i] for n in ns])
     fig,ax=plt.subplots(figsize=(8,5),layout='constrained')
     for n in ns:ax.plot(energy,refl[n],label=f'{labels[n]} (n₀={n:g})')
-    ax.set(xlim=(.5,min(5,float(energy[-1]))),ylim=(0,1),xlabel='Photon energy (eV)',ylabel='Normal-incidence reflectivity',title=f'Perfect ice X, {p_text}: {comment or "dielectric"} optics')
+    ax.set(xlim=(.5,min(5,float(energy[-1]))),ylim=(0,1),xlabel='Photon energy (eV)',ylabel='Normal-incidence reflectivity',title=f'{sample_title}, {p_text}: {comment or "dielectric"} optics')
     ax.grid(alpha=.2);ax.legend(title='Incident index')
     for ext in ('png','pdf'):fig.savefig(str(out)+'.'+ext,dpi=160)
     print(f'Wrote {out}.csv/.png/.pdf; dielectric response: {comment or "unspecified"}.')
+    print(f'Sample: {sample_title}')
     print(f'VASP pressure: {p_text} (mean diagonal stress, positive compression; source: {outcar}).')
+    if provenance.is_file():print('Static DFT stress excludes the ionic kinetic contribution to MD pressure; see provenance.json for the source EOS mean.')
     for wavelength in (532,1064):
         e=HC/wavelength
         if energy[0]<=e<=energy[-1]:

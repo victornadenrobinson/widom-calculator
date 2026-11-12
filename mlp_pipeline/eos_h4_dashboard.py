@@ -49,7 +49,7 @@ def active(root):
     return sorted(jobs,key=lambda j:(TEMPS.index(j['T']) if j['T'] in TEMPS else 99,j['v']))
 
 
-def render(root):
+def render(root, viewer=True):
     jobs=active(root);out=['H4O EOS: live read-only dashboard | 128 O, 640 atoms',gpu_info(),
        'MD progress and ETA cover equilibration + production only; premelt is separate.',
        f"{'target':>7} {'vpa':>6} {'GPU':>5} {'progress':>8} {'stage':>8} {'T K':>7} {'P GPa':>8} {'±':>6} {'ms/st':>6} {'ETA':>7}"]
@@ -82,7 +82,7 @@ def render(root):
         out.append(f"{t:5} K |{''.join(line)}| saved {len(set(v for v,_ in done)):2}/16  running {running}")
     # P–V plot for the first currently running temperature, matching the old
     # dashboard's volume-per-formula-unit convention (5 atoms per H4O).
-    selected=jobs[0]['T'] if jobs else None
+    selected=max(TEMPS, key=lambda t: sum(j['T']==t for j in jobs)) if jobs else None
     points=[(p,5*v,'●') for v,p in coverage.get(selected,[])]
     for job in jobs:
         if job['T']==selected and job['pressure']:
@@ -100,7 +100,7 @@ def render(root):
         out.append('      +-------------------------------------------------')
         out.append('       1 GPa            10             100          1000')
     out+=['','Saved rows are not phase/convergence certification; blank pressures are not yet reported.',
-          'This viewer does not control the queue. Ctrl-C closes only the viewer.']
+          ('This viewer does not control the queue. Ctrl-C closes only the viewer.' if viewer else 'Ctrl-C stops the queue; completed rows remain saved.')]
     return '\n'.join(out)
 
 

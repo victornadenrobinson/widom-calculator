@@ -42,7 +42,7 @@ def main():
     ap.add_argument('--gpus', type=int, default=4)
     ap.add_argument('--per-gpu', type=int, default=4)
     ap.add_argument('--model', default='grace-ft:runs/grace/ft_mfinkc_cont')
-    ap.add_argument('--refresh', type=float, default=30)
+    ap.add_argument('--refresh', type=float, default=10)
     a = ap.parse_args()
     if a.gpus < 1 or a.per_gpu < 1 or a.refresh <= 0:
         ap.error('GPU counts and refresh must be positive')
@@ -90,6 +90,9 @@ def main():
         for item in running.values():
             if item['proc'].poll() is None: item['proc'].terminate()
     signal.signal(signal.SIGINT,interrupt);signal.signal(signal.SIGTERM,interrupt)
+    dashboard = sys.stdout.isatty()
+    if dashboard:
+        from eos_h4_dashboard import render
     started=time.monotonic(); last=0
     envbase=os.environ.copy()
     for key in ('VMAX','VMIN','PS','EQ','NREP','NATOMS','GRACE_MODE','HHWALL','GRACE_UQ','EOS_QUEUE'):
@@ -119,11 +122,20 @@ def main():
                      '--report-fs','50','--tag',task['tag'],'--outdir',str(task['directory'])]
                 proc=subprocess.Popen(cmd,stdout=log,stderr=subprocess.STDOUT,env=dict(envbase,CUDA_VISIBLE_DEVICES=ids[gpu]))
                 running[proc.pid]=dict(proc=proc,gpu=gpu,task=task,log=log,logpath=logpath,table=task['directory']/(task['tag']+'.csv'))
-                print(f"START {task['T']} K vpa={task['vpa']:.4f} GPU={gpu}; {logpath}",flush=True)
+                if not dashboard:
+                    print(f"START {task['T']} K vpa={task['vpa']:.4f} GPU={gpu}; {logpath}",flush=True)
             now=time.monotonic()
             if now-last>=a.refresh:
                 counts=[sum(item['gpu']==g for item in running.values()) for g in range(a.gpus)]
-                print(f'elapsed {int(now-started)}s | done {finished} (+{completed} saved) | running {len(running)} {counts}/GPU | pending {len(tasks)} | failed {len(failed)}',flush=True);last=now
+                summary=f'elapsed {int(now-started)}s | done {finished} (+{completed} saved) | running {len(running)} {counts}/GPU | pending {len(tasks)} | failed {len(failed)}'
+                if dashboard:
+                    try:
+                        print('\033[H\033[2J'+summary+'\n'+render(ROOT, viewer=False),flush=True)
+                    except Exception as exc:
+                        # A display problem must never stop or kill MD workers.
+                        print(summary+f' | dashboard unavailable: {exc}',flush=True)
+                else: print(summary,flush=True)
+                last=now
             if (stop or failed) and not running:break
             if tasks or running:time.sleep(2)
     finally:

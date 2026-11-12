@@ -15,8 +15,9 @@ import subprocess
 import sys
 import numpy as np
 from eos_volume_table import usable
-ROOT=Path(__file__).resolve().parents[1]
-COMPS=('h2o','h2.25','h3o','h5o','h7o','h')
+ROOT=Path(os.environ.get('EOS_REPO_ROOT', str(Path(__file__).resolve().parents[1]))).resolve()
+CODE_DIR=Path(os.environ.get('EOS_CODE_DIR', str(ROOT/'mlp_pipeline'))).resolve()
+COMPS=('h2o','h2.25','h3o','h4o','h5o','h7o','h')
 
 
 def resolve(group, model):
@@ -25,7 +26,7 @@ def resolve(group, model):
     grids={}
     for c in group['compositions']:
         pts=[]
-        hper={'h2o':2,'h2.25':2.25,'h3o':3,'h5o':5,'h7o':7}.get(c)
+        hper={'h2o':2,'h2.25':2.25,'h3o':3,'h4o':4,'h5o':5,'h7o':7}.get(c)
         nrep=min((3,4),key=lambda n:abs(2*n**3*(1+hper)-384)) if hper else 0
         expected_N=round(2*nrep**3*(1+hper)) if hper else 729
         for d in (ROOT/'runs/eos_live').glob(f'{model}_{c}_{group["T"]}K_*at'):
@@ -105,10 +106,10 @@ def main():
             env.update(PY=sys.executable,MODEL=a.model,T=str(g['T']),COMP=' '.join(g['compositions']),
                 NGPU=str(ng),PER_GPU=str(a.per_gpu),NV=str(g.get('nv',16)),VPA_JSON=json.dumps(volumes),
                 NEARBY_START='1',PLOT='braille',REFRESH='10',OMP_NUM_THREADS='1',EOS_QUEUE=json.dumps(schedule),
-                EOS_REPO_ROOT=str(ROOT),EOS_CODE_DIR=str(ROOT/'mlp_pipeline'))
+                EOS_REPO_ROOT=str(ROOT),EOS_CODE_DIR=str(CODE_DIR))
             for key in ('ps', 'eq'):
                 if key in g: env[key.upper()]=str(g[key])
-            child=subprocess.Popen(['bash','mlp_pipeline/eos_live.sh'],env=env)
+            child=subprocess.Popen(['bash',str(CODE_DIR/'eos_live.sh')],env=env)
             rc=child.wait();schedule[idx]['state']='done' if rc==0 else 'failed'
             if rc:raise SystemExit('Group failed; inspect its logs before resuming the queue.')
         except BlockingIOError:

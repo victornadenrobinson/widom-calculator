@@ -25,8 +25,8 @@ GPU_IDS = E("CUDA_VISIBLE_DEVICES", "").split(",") if E("CUDA_VISIBLE_DEVICES") 
 if len(GPU_IDS) < NG: sys.exit("NGPU exceeds CUDA_VISIBLE_DEVICES")
 CODE_DIR = E("EOS_CODE_DIR", "mlp_pipeline")
 T = int(float(E("T", "7000"))); NV = int(E("NV", "16")); PER = int(E("PER_GPU", "4")); REF = float(E("REFRESH", "10")); PM_T = E("PM_T", "9000")
-COMPS = E("COMP", "h2o").split(); HPER = {"h": 0.0, "h2o": 2.0, "h2.25": 2.25, "h3o": 3.0, "h5o": 5.0, "h7o": 7.0}
-NAME = {"h2o": "H2O", "h": "H", "h2.25": "H2.25O", "h3o": "H3O", "h5o": "H5O", "h7o": "H7O"}
+COMPS = E("COMP", "h2o").split(); HPER = {"h": 0.0, "h2o": 2.0, "h2.25": 2.25, "h3o": 3.0, "h4o": 4.0, "h5o": 5.0, "h7o": 7.0}
+NAME = {"h2o": "H2O", "h": "H", "h2.25": "H2.25O", "h3o": "H3O", "h4o": "H4O", "h5o": "H5O", "h7o": "H7O"}
 bad = [c for c in COMPS if c not in HPER]
 if bad: sys.exit(f"COMP must be among {list(HPER)}; got {bad}")
 # Optional explicit per-composition volume grids for filling pressure gaps.

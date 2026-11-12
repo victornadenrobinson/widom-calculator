@@ -1,0 +1,474 @@
+{
+  "created_utc": "2026-11-12T14:18:34.973377+00:00",
+  "host": "login21.young.ucl.ac.uk",
+  "root": "/lustre/scratch/mmm0037/H3O/runs/eos_live",
+  "model_id_from_directory": "ft_mfinkc_cont; exact checkpoint identity not established",
+  "limitations": "Full source CSV tables only; no raw trajectories, DFT labels, independent model hash or phase certification.",
+  "tables": [
+    {
+      "source_path": "/lustre/scratch/mmm0037/H3O/runs/eos_live/ft_mfinkc_cont_h2.25_3000K_416at/ft_mfinkc_cont_h2.25_3000K_416at.csv",
+      "sha256": "9b0b09bf32b930816e5da6abf2f7bad33806e92144ad07a002b9e36597671f43",
+      "rows": 16,
+      "finite_pressure_rows": 16,
+      "pressure_range_GPa": [
+        6.2174963357873745,
+        835.9949742656809
+      ],
+      "T_set_K": [
+        3000.0
+      ],
+      "trajectory_files_present": 16,
+      "note": "Presence and row count do not certify completion, equilibration, liquid phase or trajectory integrity."
+    },
+    {
+      "source_path": "/lustre/scratch/mmm0037/H3O/runs/eos_live/ft_mfinkc_cont_h2.25_5000K_416at/ft_mfinkc_cont_h2.25_5000K_416at.csv",
+      "sha256": "e8449a8749f691f897fe6857a85cc782d097acd611de8d7e4289c4b6f673ac2b",
+      "rows": 16,
+      "finite_pressure_rows": 16,
+      "pressure_range_GPa": [
+        9.662979115574363,
+        873.3511543037806
+      ],
+      "T_set_K": [
+        5000.0
+      ],
+      "trajectory_files_present": 16,
+      "note": "Presence and row count do not certify completion, equilibration, liquid phase or trajectory integrity."
+    },
+    {
+      "source_path": "/lustre/scratch/mmm0037/H3O/runs/eos_live/ft_mfinkc_cont_h2.25_6000K_416at/ft_mfinkc_cont_h2.25_6000K_416at.csv",
+      "sha256": "ae0e1a8907e25cb5d1562d7c7b4e422fb19c1af7875ae28981fcc7dfffe208f5",
+      "rows": 16,
+      "finite_pressure_rows": 16,
+      "pressure_range_GPa": [
+        10.582462612223434,
+        887.8265231550055
+      ],
+      "T_set_K": [
+        6000.0
+      ],
+      "trajectory_files_present": 16,
+      "note": "Presence and row count do not certify completion, equilibration, liquid phase or trajectory integrity."
+    },
+    {
+      "source_path": "/lustre/scratch/mmm0037/H3O/runs/eos_live/ft_mfinkc_cont_h2.25_7000K_416at/ft_mfinkc_cont_h2.25_7000K_416at.csv",
+      "sha256": "ff3826522b6d22e8f68b617dd0dddbfb29f86f8d1ef30ae7607470b67c47a571",
+      "rows": 19,
+      "finite_pressure_rows": 19,
+      "pressure_range_GPa": [
+        12.444690505882196,
+        909.1695050384267
+      ],
+      "T_set_K": [
+        7000.0
+      ],
+      "trajectory_files_present": 19,
+      "note": "Presence and row count do not certify completion, equilibration, liquid phase or trajectory integrity."
+    },
+    {
+      "source_path": "/lustre/scratch/mmm0037/H3O/runs/eos_live/ft_mfinkc_cont_h2.25_8000K_416at/ft_mfinkc_cont_h2.25_8000K_416at.csv",
+      "sha256": "325053e0c48194706c560e17d8065a70570410a890ae14827b4d082f289b7fea",
+      "rows": 16,
+      "finite_pressure_rows": 16,
+      "pressure_range_GPa": [
+        14.682805343275408,
+        928.0061197022302
+      ],
+      "T_set_K": [
+        8000.0
+      ],
+      "trajectory_files_present": 16,
+      "note": "Presence and row count do not certify completion, equilibration, liquid phase or trajectory integrity."
+    },
+    {
+      "source_path": "/lustre/scratch/mmm0037/H3O/runs/eos_live/ft_mfinkc_cont_h2.25_9000K_416at/ft_mfinkc_cont_h2.25_9000K_416at.csv",
+      "sha256": "8c2e7dbae9c676e248389fabfbb431a36c23d2acfda3d6a340a2ef53b73a56f4",
+      "rows": 16,
+      "finite_pressure_rows": 16,
+      "pressure_range_GPa": [
+        15.499559790865515,
+        947.943458275935
+      ],
+      "T_set_K": [
+        9000.0
+      ],
+      "trajectory_files_present": 16,
+      "note": "Presence and row count do not certify completion, equilibration, liquid phase or trajectory integrity."
+    },
+    {
+      "source_path": "/lustre/scratch/mmm0037/H3O/runs/eos_live/ft_mfinkc_cont_h2o_3000K_384at/ft_mfinkc_cont_h2o_3000K_384at.csv",
+      "sha256": "d6f7ad554408ae4b48a9491f84404e1b1386a8d6af45a33b6036df90366e2f14",
+      "rows": 16,
+      "finite_pressure_rows": 16,
+      "pressure_range_GPa": [
+        6.7371985924202615,
+        821.7396699720732
+      ],
+      "T_set_K": [
+        3000.0
+      ],
+      "trajectory_files_present": 16,
+      "note": "Presence and row count do not certify completion, equilibration, liquid phase or trajectory integrity."
+    },
+    {
+      "source_path": "/lustre/scratch/mmm0037/H3O/runs/eos_live/ft_mfinkc_cont_h2o_6000K_384at/ft_mfinkc_cont_h2o_6000K_384at.csv",
+      "sha256": "1727918110fdec2db865d1c4df5d03db0a7b5d6b988d3c81919f59954ccf26e2",
+      "rows": 16,
+      "finite_pressure_rows": 16,
+      "pressure_range_GPa": [
+        11.171948195224788,
+        870.1189526307755
+      ],
+      "T_set_K": [
+        6000.0
+      ],
+      "trajectory_files_present": 16,
+      "note": "Presence and row count do not certify completion, equilibration, liquid phase or trajectory integrity."
+    },
+    {
+      "source_path": "/lustre/scratch/mmm0037/H3O/runs/eos_live/ft_mfinkc_cont_h2o_8000K_384at/ft_mfinkc_cont_h2o_8000K_384at.csv",
+      "sha256": "5c1242831fd73bc36b2c5f82fd119339a36b1456fd2838267872653fe8e02b34",
+      "rows": 16,
+      "finite_pressure_rows": 16,
+      "pressure_range_GPa": [
+        14.179059611449322,
+        908.8132911342752
+      ],
+      "T_set_K": [
+        8000.0
+      ],
+      "trajectory_files_present": 16,
+      "note": "Presence and row count do not certify completion, equilibration, liquid phase or trajectory integrity."
+    },
+    {
+      "source_path": "/lustre/scratch/mmm0037/H3O/runs/eos_live/ft_mfinkc_cont_h2o_9000K_384at/ft_mfinkc_cont_h2o_9000K_384at.csv",
+      "sha256": "aa3912856d23893a981b87bff3bd3c045d2584579149578508831ed65b70bbc5",
+      "rows": 16,
+      "finite_pressure_rows": 16,
+      "pressure_range_GPa": [
+        16.21788225038709,
+        921.8410402734444
+      ],
+      "T_set_K": [
+        9000.0
+      ],
+      "trajectory_files_present": 16,
+      "note": "Presence and row count do not certify completion, equilibration, liquid phase or trajectory integrity."
+    },
+    {
+      "source_path": "/lustre/scratch/mmm0037/H3O/runs/eos_live/ft_mfinkc_cont_h3o_3000K_512at/ft_mfinkc_cont_h3o_3000K_512at.csv",
+      "sha256": "61c216ea5af17dbd055bcdf4179ca79ae72f26b06ae6b43eea41c528908bba69",
+      "rows": 16,
+      "finite_pressure_rows": 16,
+      "pressure_range_GPa": [
+        6.34507529278253,
+        855.3795558486083
+      ],
+      "T_set_K": [
+        3000.0
+      ],
+      "trajectory_files_present": 16,
+      "note": "Presence and row count do not certify completion, equilibration, liquid phase or trajectory integrity."
+    },
+    {
+      "source_path": "/lustre/scratch/mmm0037/H3O/runs/eos_live/ft_mfinkc_cont_h3o_6000K_512at/ft_mfinkc_cont_h3o_6000K_512at.csv",
+      "sha256": "2d67766781cb56e8be90c8223145ecc31781a0a0b6c9b413f6324812f371e967",
+      "rows": 16,
+      "finite_pressure_rows": 16,
+      "pressure_range_GPa": [
+        10.729746537443866,
+        910.4210831056519
+      ],
+      "T_set_K": [
+        6000.0
+      ],
+      "trajectory_files_present": 16,
+      "note": "Presence and row count do not certify completion, equilibration, liquid phase or trajectory integrity."
+    },
+    {
+      "source_path": "/lustre/scratch/mmm0037/H3O/runs/eos_live/ft_mfinkc_cont_h3o_8000K_512at/ft_mfinkc_cont_h3o_8000K_512at.csv",
+      "sha256": "0696d1a96f1d2e80f68b15f3405c273419aff5c1e4adc042887a3d48b96d1fbc",
+      "rows": 16,
+      "finite_pressure_rows": 16,
+      "pressure_range_GPa": [
+        13.966388634891288,
+        952.5443809342007
+      ],
+      "T_set_K": [
+        8000.0
+      ],
+      "trajectory_files_present": 16,
+      "note": "Presence and row count do not certify completion, equilibration, liquid phase or trajectory integrity."
+    },
+    {
+      "source_path": "/lustre/scratch/mmm0037/H3O/runs/eos_live/ft_mfinkc_cont_h3o_9000K_512at/ft_mfinkc_cont_h3o_9000K_512at.csv",
+      "sha256": "a9dec992bc27114cb012ec4c91e863d220ff00eccaace8f629ea1e8a74441ef9",
+      "rows": 16,
+      "finite_pressure_rows": 16,
+      "pressure_range_GPa": [
+        15.424051856365107,
+        972.8273787543669
+      ],
+      "T_set_K": [
+        9000.0
+      ],
+      "trajectory_files_present": 16,
+      "note": "Presence and row count do not certify completion, equilibration, liquid phase or trajectory integrity."
+    },
+    {
+      "source_path": "/lustre/scratch/mmm0037/H3O/runs/eos_live/ft_mfinkc_cont_h5o_3000K_324at/ft_mfinkc_cont_h5o_3000K_324at.csv",
+      "sha256": "4ad8d7c8ac607f1021e29b78373416c785bf28ab4d264b86a9f2af0245e21ae5",
+      "rows": 16,
+      "finite_pressure_rows": 16,
+      "pressure_range_GPa": [
+        6.1661350580967325,
+        889.2291531491222
+      ],
+      "T_set_K": [
+        3000.0
+      ],
+      "trajectory_files_present": 16,
+      "note": "Presence and row count do not certify completion, equilibration, liquid phase or trajectory integrity."
+    },
+    {
+      "source_path": "/lustre/scratch/mmm0037/H3O/runs/eos_live/ft_mfinkc_cont_h5o_5000K_324at/ft_mfinkc_cont_h5o_5000K_324at.csv",
+      "sha256": "36e34db4c6cf0bc46ac92ee5ff7dc8cc74011f6d50edf0b9e335c9ef4c2f2b02",
+      "rows": 16,
+      "finite_pressure_rows": 16,
+      "pressure_range_GPa": [
+        8.94398978620938,
+        936.6383892358128
+      ],
+      "T_set_K": [
+        5000.0
+      ],
+      "trajectory_files_present": 16,
+      "note": "Presence and row count do not certify completion, equilibration, liquid phase or trajectory integrity."
+    },
+    {
+      "source_path": "/lustre/scratch/mmm0037/H3O/runs/eos_live/ft_mfinkc_cont_h5o_6000K_324at/ft_mfinkc_cont_h5o_6000K_324at.csv",
+      "sha256": "9476ec64cd06aaf3fc5bf46c8a3783baade45771355dad1f1b4e2dd53421b63b",
+      "rows": 16,
+      "finite_pressure_rows": 16,
+      "pressure_range_GPa": [
+        10.32542358868929,
+        955.5767149875273
+      ],
+      "T_set_K": [
+        6000.0
+      ],
+      "trajectory_files_present": 16,
+      "note": "Presence and row count do not certify completion, equilibration, liquid phase or trajectory integrity."
+    },
+    {
+      "source_path": "/lustre/scratch/mmm0037/H3O/runs/eos_live/ft_mfinkc_cont_h5o_7000K_324at/ft_mfinkc_cont_h5o_7000K_324at.csv",
+      "sha256": "a05ccdf1523a16675a840a7d92b971ebaa0df63b67ee59a6d1147ce0584a48fb",
+      "rows": 20,
+      "finite_pressure_rows": 20,
+      "pressure_range_GPa": [
+        11.83040963089418,
+        983.522030037679
+      ],
+      "T_set_K": [
+        7000.0
+      ],
+      "trajectory_files_present": 20,
+      "note": "Presence and row count do not certify completion, equilibration, liquid phase or trajectory integrity."
+    },
+    {
+      "source_path": "/lustre/scratch/mmm0037/H3O/runs/eos_live/ft_mfinkc_cont_h5o_8000K_324at/ft_mfinkc_cont_h5o_8000K_324at.csv",
+      "sha256": "5a8cd99685da508dca8d30529e09035aa1b029519762f350d788d5599d0aee59",
+      "rows": 16,
+      "finite_pressure_rows": 16,
+      "pressure_range_GPa": [
+        13.63772019479731,
+        998.7710380616982
+      ],
+      "T_set_K": [
+        8000.0
+      ],
+      "trajectory_files_present": 16,
+      "note": "Presence and row count do not certify completion, equilibration, liquid phase or trajectory integrity."
+    },
+    {
+      "source_path": "/lustre/scratch/mmm0037/H3O/runs/eos_live/ft_mfinkc_cont_h5o_9000K_324at/ft_mfinkc_cont_h5o_9000K_324at.csv",
+      "sha256": "e7ba298e401b1ffdca6c41ac6b231e53a9eb9c438ad5e9319fef93c4ef9c54ae",
+      "rows": 16,
+      "finite_pressure_rows": 16,
+      "pressure_range_GPa": [
+        14.51313207615022,
+        1010.9118816175858
+      ],
+      "T_set_K": [
+        9000.0
+      ],
+      "trajectory_files_present": 16,
+      "note": "Presence and row count do not certify completion, equilibration, liquid phase or trajectory integrity."
+    },
+    {
+      "source_path": "/lustre/scratch/mmm0037/H3O/runs/eos_live/ft_mfinkc_cont_h7o_3000K_432at/ft_mfinkc_cont_h7o_3000K_432at.csv",
+      "sha256": "e97f15b28a2bd3da2bed35519c7dd5c7bb848e0690965366f0517c603e410793",
+      "rows": 16,
+      "finite_pressure_rows": 16,
+      "pressure_range_GPa": [
+        6.1779440817717735,
+        905.8119904383308
+      ],
+      "T_set_K": [
+        3000.0
+      ],
+      "trajectory_files_present": 16,
+      "note": "Presence and row count do not certify completion, equilibration, liquid phase or trajectory integrity."
+    },
+    {
+      "source_path": "/lustre/scratch/mmm0037/H3O/runs/eos_live/ft_mfinkc_cont_h7o_5000K_432at/ft_mfinkc_cont_h7o_5000K_432at.csv",
+      "sha256": "3901571babc599323070c46d6e6c60c2f53390d9a89cedb5fab8148ef690811c",
+      "rows": 16,
+      "finite_pressure_rows": 16,
+      "pressure_range_GPa": [
+        9.332959791167394,
+        959.884390152657
+      ],
+      "T_set_K": [
+        5000.0
+      ],
+      "trajectory_files_present": 16,
+      "note": "Presence and row count do not certify completion, equilibration, liquid phase or trajectory integrity."
+    },
+    {
+      "source_path": "/lustre/scratch/mmm0037/H3O/runs/eos_live/ft_mfinkc_cont_h7o_6000K_432at/ft_mfinkc_cont_h7o_6000K_432at.csv",
+      "sha256": "f94e36e76fd3ddb09b5384e7b4a4995ba045a4f64c2a120efb9e000ba9a6b9a6",
+      "rows": 16,
+      "finite_pressure_rows": 16,
+      "pressure_range_GPa": [
+        10.1476303014145,
+        977.4689121112463
+      ],
+      "T_set_K": [
+        6000.0
+      ],
+      "trajectory_files_present": 16,
+      "note": "Presence and row count do not certify completion, equilibration, liquid phase or trajectory integrity."
+    },
+    {
+      "source_path": "/lustre/scratch/mmm0037/H3O/runs/eos_live/ft_mfinkc_cont_h7o_7000K_432at/ft_mfinkc_cont_h7o_7000K_432at.csv",
+      "sha256": "a643bf901ff27c579e92106d6c3aa9630ccca3e716645117102d5f339675c479",
+      "rows": 21,
+      "finite_pressure_rows": 21,
+      "pressure_range_GPa": [
+        11.33426291288317,
+        1004.751737941411
+      ],
+      "T_set_K": [
+        7000.0
+      ],
+      "trajectory_files_present": 21,
+      "note": "Presence and row count do not certify completion, equilibration, liquid phase or trajectory integrity."
+    },
+    {
+      "source_path": "/lustre/scratch/mmm0037/H3O/runs/eos_live/ft_mfinkc_cont_h7o_8000K_432at/ft_mfinkc_cont_h7o_8000K_432at.csv",
+      "sha256": "e373aed57a4df4b6f25eb0b7d2784cc41a1d62759c51cc201727c778f9bea0fa",
+      "rows": 16,
+      "finite_pressure_rows": 16,
+      "pressure_range_GPa": [
+        12.882133555707622,
+        1023.9208938045265
+      ],
+      "T_set_K": [
+        8000.0
+      ],
+      "trajectory_files_present": 16,
+      "note": "Presence and row count do not certify completion, equilibration, liquid phase or trajectory integrity."
+    },
+    {
+      "source_path": "/lustre/scratch/mmm0037/H3O/runs/eos_live/ft_mfinkc_cont_h7o_9000K_432at/ft_mfinkc_cont_h7o_9000K_432at.csv",
+      "sha256": "de881098e9b8d796950c7ee94aacff7c8314dc8d06c34839efeb2748c27f176c",
+      "rows": 16,
+      "finite_pressure_rows": 16,
+      "pressure_range_GPa": [
+        14.66228319239525,
+        1048.5971464234842
+      ],
+      "T_set_K": [
+        9000.0
+      ],
+      "trajectory_files_present": 16,
+      "note": "Presence and row count do not certify completion, equilibration, liquid phase or trajectory integrity."
+    },
+    {
+      "source_path": "/lustre/scratch/mmm0037/H3O/runs/eos_live/ft_mfinkc_cont_h_2000K_729at/ft_mfinkc_cont_h_2000K_729at.csv",
+      "sha256": "45dffa7bd721b87ec168930e846dab44c0ba0a13be0aa5ca955e49bebf39516a",
+      "rows": 16,
+      "finite_pressure_rows": 16,
+      "pressure_range_GPa": [
+        5.50760455725926,
+        953.1730689878708
+      ],
+      "T_set_K": [
+        2000.0
+      ],
+      "trajectory_files_present": 16,
+      "note": "Presence and row count do not certify completion, equilibration, liquid phase or trajectory integrity."
+    },
+    {
+      "source_path": "/lustre/scratch/mmm0037/H3O/runs/eos_live/ft_mfinkc_cont_h_3000K_729at/ft_mfinkc_cont_h_3000K_729at.csv",
+      "sha256": "87e2a2fd58d355e0c09c69a4e6aa7ee37008fb5db5bff0fb98fe8eefce22953c",
+      "rows": 16,
+      "finite_pressure_rows": 16,
+      "pressure_range_GPa": [
+        7.052002119967449,
+        982.8876881600903
+      ],
+      "T_set_K": [
+        3000.0
+      ],
+      "trajectory_files_present": 16,
+      "note": "Presence and row count do not certify completion, equilibration, liquid phase or trajectory integrity."
+    },
+    {
+      "source_path": "/lustre/scratch/mmm0037/H3O/runs/eos_live/ft_mfinkc_cont_h_6000K_729at/ft_mfinkc_cont_h_6000K_729at.csv",
+      "sha256": "284e6bbf9471378fd992cd5262fd84c94281db632baa9c24f6e3a0c59b248999",
+      "rows": 16,
+      "finite_pressure_rows": 16,
+      "pressure_range_GPa": [
+        11.235808190851852,
+        1056.6190896833111
+      ],
+      "T_set_K": [
+        6000.0
+      ],
+      "trajectory_files_present": 16,
+      "note": "Presence and row count do not certify completion, equilibration, liquid phase or trajectory integrity."
+    },
+    {
+      "source_path": "/lustre/scratch/mmm0037/H3O/runs/eos_live/ft_mfinkc_cont_h_8000K_729at/ft_mfinkc_cont_h_8000K_729at.csv",
+      "sha256": "9011c682e6ecc17da795f07ec3be74e4b629e24e5cbae3222b842d610fa1410a",
+      "rows": 16,
+      "finite_pressure_rows": 16,
+      "pressure_range_GPa": [
+        13.446790602123675,
+        1109.9717989971957
+      ],
+      "T_set_K": [
+        8000.0
+      ],
+      "trajectory_files_present": 16,
+      "note": "Presence and row count do not certify completion, equilibration, liquid phase or trajectory integrity."
+    },
+    {
+      "source_path": "/lustre/scratch/mmm0037/H3O/runs/eos_live/ft_mfinkc_cont_h_9000K_729at/ft_mfinkc_cont_h_9000K_729at.csv",
+      "sha256": "0a4838438cc1a086d6799862bc0b24cdfaebb4b2413d9c43c289c129303eab2b",
+      "rows": 16,
+      "finite_pressure_rows": 16,
+      "pressure_range_GPa": [
+        15.142386666766873,
+        1135.4681735316606
+      ],
+      "T_set_K": [
+        9000.0
+      ],
+      "trajectory_files_present": 16,
+      "note": "Presence and row count do not certify completion, equilibration, liquid phase or trajectory integrity."
+    }
+  ]
+}

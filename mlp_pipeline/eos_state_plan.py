@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 from eos_literature import overlay, dft_points
 
 ROOT = Path(__file__).resolve().parents[1]
-COMPS = ('h2o', 'h2.25', 'h3o', 'h5o', 'h7o', 'h')
+COMPS = ('h2o', 'h2.25', 'h3o', 'h4o', 'h5o', 'h7o', 'h')
 PRESSURES = (10, 25, 50, 75, 100, 150, 200, 250, 300, 350, 400, 450, 500)
 BOUND_P = (10, 100, 150, 200, 300, 400, 500)
 BOUND_T = (1000, 1900, 3000, 3700, 4800, 5900, 6700)
@@ -71,7 +71,7 @@ def main():
                             epot_eV_atom=epot,ekin_eV_atom=kinetic,
                             epot_plus_nuclear_kinetic_eV_atom=epot+kinetic,source=str(f)))
                     except (KeyError,ValueError,TypeError): continue
-    fig, axes = plt.subplots(2,3,figsize=(14,8),sharex=True,sharey=True,layout='constrained')
+    fig, axes = plt.subplots(2,4,figsize=(18,8),sharex=True,sharey=True,layout='constrained')
     for ax,c in zip(axes.flat,COMPS):
         ax.fill_between(BOUND_P,BOUND_T,9000,color='aliceblue',zorder=0)
         targets=[r for r in plan if r['composition']==c]
@@ -86,20 +86,22 @@ def main():
         overlay(ax,c)
         ax.set(title=c.upper(),xlim=(0,560),ylim=(500,9500),xlabel='Pressure (GPa)',ylabel='Temperature (K)')
         ax.grid(alpha=.15)
+    for ax in axes.flat[len(COMPS):]: ax.set_visible(False)
     for ax in axes.flat:
         handles, labels = ax.get_legend_handles_labels()
         if labels: ax.legend(fontsize=7,loc='lower right')
-    fig.suptitle('Liquid EOS state-point plan: all six compositions\nFilled points = available reported data, not certification of liquid phase; live Young results require --root')
+    fig.suptitle('Liquid EOS state-point plan: seven compositions\nFilled points = available reported data, not certification of liquid phase; live Young results require --root')
     for ext in ('.png','.pdf'): fig.savefig(str(out)+ext,dpi=160)
     if energies:
         write_rows(Path(str(out)+'_energies.csv'),energies)
-        fig,axes=plt.subplots(2,3,figsize=(14,8),layout='constrained')
+        fig,axes=plt.subplots(2,4,figsize=(18,8),layout='constrained')
         for ax,c in zip(axes.flat,COMPS):
             for T in sorted({r['T_set_K'] for r in energies if r['composition']==c}):
                 rows=sorted((r for r in energies if r['composition']==c and r['T_set_K']==T),key=lambda r:r['P_GPa'])
                 ax.scatter([r['P_GPa'] for r in rows],[r['epot_plus_nuclear_kinetic_eV_atom'] for r in rows],label=f'{T:g} K')
             ax.set(title=c.upper(),xlabel='Pressure (GPa)',ylabel='MLP potential + nuclear kinetic (eV/atom)');ax.grid(alpha=.15)
             if ax.collections: ax.legend(fontsize=8)
+        for ax in axes.flat[len(COMPS):]: ax.set_visible(False)
         fig.suptitle('Recorded model energy; electronic entropy corrections not included; phase unscreened')
         fig.savefig(str(out)+'_energy.png',dpi=160)
     print(f'{len(plan)} targets written to {out}_targets.csv; {len(observations)} reported rows loaded.')

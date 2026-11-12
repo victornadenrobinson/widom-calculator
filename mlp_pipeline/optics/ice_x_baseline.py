@@ -68,7 +68,7 @@ NCORE = 4
     shutil.copyfile(a.potcar,out/'POTCAR')
     meta=dict(vpa_A3=a.vpa,electronic_T_K=a.temperature,geometry='perfect 6-atom cubic ice X',ionic_T='static geometry',pressure='not fixed; inspect VASP stress',mesh=[a.mesh]*3,nbands=a.nbands,encut_eV=1000,potcar_sha256=hashlib.sha256(data).hexdigest(),potcar_species=species,sigma_eV=a.temperature*KB,cshift_eV=.1,notes='Initial exploratory PBE-PAW baseline; verify POTCAR functional/version, optics broadening, bands, k mesh, occupations and electronic pressure; no explicit Drude term.')
     (out/'setup.json').write_text(json.dumps(meta,indent=2)+'\n')
-    print(f'Prepared {out.resolve()} | a={lattice:.6f} A | SIGMA={a.temperature*KB:.6f} eV | POTCAR {','.join(species)} | {a.nbands} bands')
+    print(f"Prepared {out.resolve()} | a={lattice:.6f} A | SIGMA={a.temperature*KB:.6f} eV | POTCAR {','.join(species)} | {a.nbands} bands")
     print('Fixed geometry is a baseline, not liquid or a proven 350-400 GPa / 7000 K state.')
 
 

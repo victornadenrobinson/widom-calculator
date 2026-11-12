@@ -116,7 +116,7 @@ def plot(a):
     eps=np.mean(re_[:,1:4],axis=1)+1j*np.mean(im_[:,1:4],axis=1)
     index=np.sqrt(eps.astype(complex)); index=np.where(index.imag<0,-index,index)
     out=Path(a.out);out.parent.mkdir(parents=True,exist_ok=True)
-    ns=[1.0,1.3,1.5,1.7]
+    ns=[1.0,1.3,1.5,1.52,1.7]
     refl={n:np.abs((index-n)/(index+n))**2 for n in ns}
     with Path(str(out)+'.csv').open('w',newline='') as f:
         w=csv.writer(f);w.writerow(['energy_eV','wavelength_nm','epsilon_real_mean','epsilon_imag_mean','n','k']+[f'R_n0_{n:g}' for n in ns])

@@ -77,9 +77,9 @@ def main():
     ax.axvspan(250, 450, color='grey', alpha=.035)
     ax.set(xlabel='Pressure (GPa)', ylabel='Reflectivity at 532 nm (%)', ylim=(0, 75),
            title='532 nm: mixture scenario and literature context')
-    ax.text(.02, .02, 'Dashed lines: frozen endpoint scenario for 7000 K, not pressure predictions.\nMillot: changing shock T; calculated P interpolated from EOS tables.\nOrange: approximate figure readings (±4 GPa, ±1.5 percentage points).',
-            transform=ax.transAxes, fontsize=9, va='bottom', bbox=dict(facecolor='white', alpha=.85, edgecolor='.8'))
-    ax.legend(loc='upper center', ncol=2, fontsize=8); ax.set_xlim(55, 455); ax.grid(alpha=.2); fig.tight_layout()
+    fig.text(.09, .015, 'Dashed lines: frozen endpoint scenario for 7000 K, not pressure predictions.\nMillot: changing shock T; calculated P interpolated from EOS tables.\nOrange: approximate figure readings (±4 GPa, ±1.5 percentage points).',
+            fontsize=8, va='bottom')
+    ax.legend(loc='upper center', ncol=2, fontsize=8); ax.set_xlim(55, 455); ax.grid(alpha=.2); fig.tight_layout(rect=(0, .1, 1, 1))
     for ext in ('png', 'pdf'): fig.savefig(str(out)+'.'+ext, dpi=180)
     plt.close(fig)
     with open(str(out)+'.csv', 'w', newline='') as f:

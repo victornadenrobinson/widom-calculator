@@ -31,6 +31,7 @@ def main():
     p.add_argument('--pmax',type=float,default=450);p.add_argument('--frames',type=int,default=3)
     p.add_argument('--compositions',nargs='+',type=float,default=[2,2.25,3,5,7])
     a=p.parse_args()
+    def label(comp): return 'H' if comp == 0 else f'H{comp:g}O'
     if a.temperature<=0 or a.frames<1 or not (0<a.pmin<a.pmax) or a.pressure<=0:p.error('Invalid temperature, pressure or number of frames')
     pot=Path(a.potcar).read_bytes();species=[x.decode().capitalize() for x in re.findall(rb'VRHFIN\s*=\s*([A-Za-z]+)',pot)]
     if species not in (['H','O'],['O','H']):raise SystemExit('Expected exactly H and O POTCAR datasets; got '+str(species))
@@ -43,28 +44,28 @@ def main():
         with table.open(newline='') as stream:
             for row in csv.DictReader(stream):
                 P,T,N,nO,V=(number(row,k) for k in ('P_GPa','T_set','N','nO','vpa'))
-                if not all(math.isfinite(x) for x in (P,T,N,nO,V)) or nO<=0 or T!=a.temperature or not a.pmin<=P<=a.pmax:continue
-                ratio=(N-nO)/nO
+                if not all(math.isfinite(x) for x in (P,T,N,nO,V)) or nO<0 or T!=a.temperature or not a.pmin<=P<=a.pmax:continue
+                ratio=(N-nO)/nO if nO else 0.0
                 comp=next((c for c in a.compositions if abs(c-ratio)<1e-5),None)
                 if comp is None:continue
                 temp,dh,do=(number(row,k) for k in ('T_mean','dmin_HH','D_O_cm2s'))
                 reason=[]
                 if not math.isfinite(temp) or abs(temp-T)>.05*T:reason.append('temperature')
-                if not math.isfinite(dh) or dh<.4:reason.append('H-H contact')
-                if not math.isfinite(do) or do<2e-5:reason.append('O diffusion')
-                if row.get('O_struct','').lower() in ('bcc','fcc','hcp'):reason.append('O order')
+                if nO>0 and (not math.isfinite(dh) or dh<.4):reason.append('H-H contact')
+                if nO>0 and (not math.isfinite(do) or do<2e-5):reason.append('O diffusion')
+                if nO>0 and row.get('O_struct','').lower() in ('bcc','fcc','hcp'):reason.append('O order')
                 drift,sd=number(row,'P_drift_GPa'),number(row,'P_block_sd')
                 if not (math.isfinite(drift) and math.isfinite(sd)):reason.append('pressure drift unavailable')
                 elif abs(drift)>max(.01*abs(P),3*sd):reason.append('pressure drift')
                 traj=folder/f'{folder.name}_v{V:.4f}'/'traj.extxyz'
                 if reason or not traj.is_file():
-                    print(f'Skip H{comp:g}O P={P:.1f}: {", ".join(reason) or "missing trajectory"} [{traj}]')
+                    print(f'Skip {label(comp)} P={P:.1f}: {", ".join(reason) or "missing trajectory"} [{traj}]')
                     continue
                 groups[comp].append((abs(P-a.pressure),P,V,row,table,traj))
     selected=[]
     for comp,candidates in groups.items():
         if not candidates:
-            print(f'No screened H{comp:g}O EOS point in {a.pmin:g}-{a.pmax:g} GPa at {a.temperature} K.');continue
+            print(f'No screened {label(comp)} EOS point in {a.pmin:g}-{a.pmax:g} GPa at {a.temperature} K.');continue
         _,P,V,row,table,traj=min(candidates,key=lambda t:t[0])
         frames=read(str(traj),index=':')
         if len(frames)<a.frames:print(f'Skip {traj}: only {len(frames)} saved frames');continue
@@ -80,7 +81,8 @@ def main():
             atoms=frames[int(idx)]
             numbers=atoms.numbers
             if set(numbers)-{1,8}:raise ValueError(f'Unexpected species in {traj}')
-            ordered=atoms[[i for sp in species for i,z in enumerate(numbers) if z=={'H':1,'O':8}[sp]]]
+            actual_species=[sp for sp in species if sp != 'O' or (numbers==8).any()]
+            ordered=atoms[[i for sp in actual_species for i,z in enumerate(numbers) if z=={'H':1,'O':8}[sp]]]
             nH=int((numbers==1).sum());nO=int((numbers==8).sum()); ne=6*nO+nH
             if len(atoms)!=int(float(row['N'])) or nO!=int(float(row['nO'])):
                 raise ValueError('Frame composition does not match EOS summary: '+str(traj))
@@ -88,9 +90,17 @@ def main():
             bands=int(math.ceil(max(.75*ne,ne/2+40)/32)*32)
             run=output/f'h{comp:g}o_P{P:.1f}GPa_frame{seq:02d}'
             run.mkdir();write(str(run/'POSCAR'),ordered,format='vasp',direct=True,sort=False,vasp5=True)
-            shutil.copyfile(a.potcar,run/'POTCAR')
+            if nO:
+                shutil.copyfile(a.potcar,run/'POTCAR')
+                selected_pot=pot
+            else:
+                datasets=re.findall(rb'.*?End of Dataset[^\n]*(?:\r?\n|$)',pot,re.S)
+                hsets=[block for block in datasets if re.search(rb'VRHFIN\s*=\s*H\s*:',block)]
+                if len(hsets)!=1 or len(datasets)!=2:raise ValueError('Could not safely isolate unique H POTCAR dataset')
+                selected_pot=hsets[0]
+                (run/'POTCAR').write_bytes(selected_pot)
             (run/'KPOINTS').write_text('Gamma-point exploratory timing only\n0\nGamma\n1 1 1\n0 0 0\n')
-            (run/'INCAR').write_text(f'''SYSTEM = GRACE EOS snapshot H{comp:g}O optical timing pilot
+            (run/'INCAR').write_text(f'''SYSTEM = GRACE EOS snapshot {label(comp)} optical timing pilot
 ENCUT = 1100
 PREC = Accurate
 EDIFF = 1E-6
@@ -113,15 +123,15 @@ NCORE = 4
 KPAR = 1
 ''')
             provenance=dict(temperature_set_K=a.temperature,temperature_mean_K=number(row,'T_mean'),pressure_mean_GPa=P,
-                pressure_sem_GPa=number(row,'P_sem'),vpa_A3=V,composition=f'H{comp:g}O',nH=nH,nO=nO,
+                pressure_sem_GPa=number(row,'P_sem'),vpa_A3=V,composition=label(comp),nH=nH,nO=nO,
                 eos_table=str(table.resolve()),trajectory=str(traj.resolve()),frame_index_zero_based=int(idx),
                 frame_count=len(frames),selected_from='last half of saved production frames',source_row=row,
                 potential='ft_mfinkc_cont; exact checkpoint identity not verified from path alone',
-                potcar_sha256=hashlib.sha256(pot).hexdigest(),potcar_species=species,nbands=bands,
+                potcar_sha256=hashlib.sha256(selected_pot).hexdigest(),potcar_species=actual_species,nbands=bands,
                 notes='Short screening trajectory; phase and pressure not certified. Gamma-point and NBANDS are initial timing choices, not converged optical settings. Distinct frames not necessarily independent.')
             (run/'provenance.json').write_text(json.dumps(provenance,indent=2)+'\n')
-            report.append(dict(composition=f'H{comp:g}O',P_GPa=P,T_mean_K=number(row,'T_mean'),frame=int(idx),N=len(atoms),NBANDS=bands,path=str(run)))
-            print(f'H{comp:g}O P={P:.1f} GPa N={len(atoms)} frame={idx}/{len(frames)} NBANDS={bands} -> {run}')
+            report.append(dict(composition=label(comp),P_GPa=P,T_mean_K=number(row,'T_mean'),frame=int(idx),N=len(atoms),NBANDS=bands,path=str(run)))
+            print(f'{label(comp)} P={P:.1f} GPa N={len(atoms)} frame={idx}/{len(frames)} NBANDS={bands} -> {run}')
     with (output/'manifest.csv').open('w',newline='') as stream:
         w=csv.DictWriter(stream,fieldnames=list(report[0]));w.writeheader();w.writerows(report)
     print(f'Prepared {len(report)} snapshots; no VASP runs started. Paths/phase/pressure/weights require review.')

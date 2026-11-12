@@ -35,7 +35,9 @@ def main():
     pressures = np.linspace(250, 450, 101)
     fig, ax = plt.subplots(figsize=(9, 6))
     rows = []
-    for x, color in zip([2, 2.25, 3, 5, 7, float('inf')], plt.cm.viridis(np.linspace(0, 1, 6))):
+    palette = plt.cm.viridis(np.linspace(0, 1, 6))
+    comp_colour = dict(zip(['H2O','H2.25O','H3O','H5.024O','H7O','H'], palette))
+    for x, color in zip([2, 2.25, 3, 5, 7, float('inf')], palette):
         fraction = 1 if np.isinf(x) else (x - 2) / x
         lo, hi = [(1-fraction)*water + fraction*h for h in hs]
         label = 'pure H' if np.isinf(x) else f'H{x:g}O'
@@ -66,16 +68,16 @@ def main():
             markersize=4, label='Millot H2O: PBE MD / HSE06 optics, P interpolated')
     # Faint points are frames; opaque points are arithmetic state means.
     ax.scatter([264.8,264.8,264.8,363.44,363.44,363.44], [11.624,9.471,7.801,16.493,13.595,13.148],
-               marker='o', color='black', alpha=.23, s=42)
-    ax.scatter([373.05,373.05,373.05], [16.715,18.737,18.523], marker='D', color='black', alpha=.23, s=42)
+               marker='o', color=comp_colour['H2O'], alpha=.23, s=42)
+    ax.scatter([373.05,373.05,373.05], [16.715,18.737,18.523], marker='D', color=comp_colour['H3O'], alpha=.23, s=42)
     ax.errorbar([264.8,363.44], [np.mean([11.624,9.471,7.801]),np.mean([16.493,13.595,13.148])],
-               yerr=[np.std([11.624,9.471,7.801],ddof=1),np.std([16.493,13.595,13.148],ddof=1)], fmt='none', color='black', capsize=3)
+               yerr=[np.std([11.624,9.471,7.801],ddof=1),np.std([16.493,13.595,13.148],ddof=1)], fmt='none', color=comp_colour['H2O'], capsize=3)
     ax.scatter([264.8,363.44], [np.mean([11.624,9.471,7.801]),np.mean([16.493,13.595,13.148])],
-               marker='o', color='black', s=45, label='Our H2O: mean ± 1 SD, 3 PBE snapshots')
-    ax.errorbar([373.05], [np.mean([16.715,18.737,18.523])], yerr=[np.std([16.715,18.737,18.523],ddof=1)], fmt='none', color='black', capsize=3)
-    ax.scatter([373.05], [np.mean([16.715,18.737,18.523])], marker='D', color='black', s=42,
+               marker='o', color=comp_colour['H2O'], edgecolor='black', linewidth=.5, s=45, label='Our H2O: mean ± 1 SD, 3 PBE snapshots')
+    ax.errorbar([373.05], [np.mean([16.715,18.737,18.523])], yerr=[np.std([16.715,18.737,18.523],ddof=1)], fmt='none', color=comp_colour['H3O'], capsize=3)
+    ax.scatter([373.05], [np.mean([16.715,18.737,18.523])], marker='D', color=comp_colour['H3O'], edgecolor='black', linewidth=.5, s=42,
                label='Our H3O: mean ± 1 SD, 3 PBE snapshots')
-    ax.scatter([314.27,427.14], [56.858,60.797], color='black', marker='*', s=80, label='Our pure H: one PBE snapshot each')
+    ax.scatter([314.27,427.14], [56.858,60.797], color=comp_colour['H'], edgecolor='black', linewidth=.6, marker='*', s=80, label='Our pure H: one PBE snapshot each')
     # DFT-MD snapshots: show only 7000 K here; pressure is the DFT-MD source mean.
     with open(a.dft_csv, newline='') as f:
         dft = list(csv.DictReader(f))
@@ -84,9 +86,10 @@ def main():
         if not subset: continue
         ps = [float(r['pressure_GPa']) for r in subset]
         vals = [float(r['density_R_percent']) for r in subset]
-        ax.scatter(ps, vals, marker=marker, color='teal', alpha=.25, s=48)
+        color = comp_colour[comp]
+        ax.scatter(ps, vals, marker=marker, color=color, alpha=.25, s=48)
         mean = np.mean(vals); sd = np.std(vals,ddof=1) if len(vals)>1 else None
-        ax.errorbar(np.mean(ps), mean, yerr=sd, fmt=marker, color='teal',
+        ax.errorbar(np.mean(ps), mean, yerr=sd, fmt=marker, color=color, markeredgecolor='black', markeredgewidth=.5,
                     markersize=5, capsize=2, label=f'{comp}: PBE DFT-MD/optics (7000 K)')
     ax.plot([140, 170], [100*h for h in hs], linestyle='none', marker='D',
             markersize=6, markerfacecolor='white', markeredgecolor='black',

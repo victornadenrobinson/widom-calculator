@@ -28,7 +28,9 @@ def main():
            (6000,3.458,1.862,3.4,215.76,3.537,240.76),(7000,3.557,3.27828,3.5,246.97,3.6,265.58),
            (8000,3.637,5.53853,3.6,277.79,3.709,301.21),(10000,3.758,10.23318,3.003,188.15,3.826,351.55)]:
         add('Millot PBE MD / HSE optics','H2O calculation; P interpolated','1.52',p0+(rho-r0)*(p1-p0)/(r1-r0),temp,r)
-    add('Our H2O','PBE snapshot','1.52',363.44,7000,16.493)
+    add('Our H2O','PBE snapshot frame 19','1.52',363.44,7000,16.493)
+    add('Our H2O','PBE snapshot frame 28','1.52',363.44,7000,13.595)
+    add('Our H2O','PBE snapshot frame 19','1.52',264.80,7000,11.624)
     add('Our H3O','PBE snapshot','1.52',373.05,7000,16.715)
     for pressure,r in [(70,25),(84,27.5),(100,31.5),(122,38.5),(149,43),(170,45.5),(182,46.8),(199,48.5),(210,49.5),(225,50.5),(280,53)]:
         add('Rillo H 5000 K','HSE optics; screenshot reading; 539 nm','1.49',pressure,5000,r)
@@ -45,7 +47,14 @@ def main():
         if not rr: continue
         pp=[r['pressure_GPa'] for r in rr];tt=[r['temperature_K'] for r in rr];vv=[r['R_percent'] for r in rr]
         axes[0].scatter(pp,vv,c=tt,cmap='plasma',norm=tn,marker=marker,s=50,edgecolor='black',linewidth=.5,label=display)
-        axes[1].scatter(pp,tt,c=vv,cmap='viridis',norm=rn,marker=marker,s=50,edgecolor='black',linewidth=.5,label=display)
+        # Multiple snapshots at exactly the same state overlap in P-T space.
+        # Show their arithmetic mean there; keep individual rows in output CSV.
+        states = sorted(set(zip(pp,tt)))
+        means = [np.mean([r['R_percent'] for r in rr if (r['pressure_GPa'],r['temperature_K'])==state]) for state in states]
+        axes[1].scatter([x[0] for x in states],[x[1] for x in states],c=means,cmap='viridis',norm=rn,marker=marker,s=50,edgecolor='black',linewidth=.5,label=display)
+        for pressure,temp in states:
+            count=sum((r['pressure_GPa'],r['temperature_K'])==(pressure,temp) for r in rr)
+            if count>1: axes[1].annotate('n='+str(count),(pressure,temp),xytext=(5,7),textcoords='offset points',fontsize=8)
     fig.colorbar(plt.cm.ScalarMappable(norm=tn,cmap='plasma'),ax=axes[0],label='Temperature (K)')
     fig.colorbar(plt.cm.ScalarMappable(norm=rn,cmap='viridis'),ax=axes[1],label='Reflectivity (%)')
     axes[0].set(xlabel='Pressure (GPa)',ylabel='Reflectivity (%)',title='Reflectivity and temperature')

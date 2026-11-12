@@ -63,7 +63,7 @@ def main():
               for T,rho,R,r0,p0,r1,p1 in calculated]
     ax.plot(calc_p,[row[2] for row in calculated], 's', color='purple',
             markersize=4, label='Millot H2O: PBE MD / HSE06 optics, P interpolated')
-    ax.plot([363.44], [100*water], 'ko', markersize=6, label='Our H2O: PBE optics, 7000 K')
+    ax.plot([264.80,363.44,363.44], [11.624,16.493,13.595], 'ko', markersize=6, label='Our H2O: PBE optics, 7000 K')
     ax.plot([373.05], [16.715], 'kD', markersize=5, label='Our H3O: PBE optics, 7000 K')
     ax.plot([140, 170], [100*h for h in hs], linestyle='none', marker='D',
             markersize=6, markerfacecolor='white', markeredgecolor='black',

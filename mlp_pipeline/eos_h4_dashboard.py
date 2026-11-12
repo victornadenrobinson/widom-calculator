@@ -95,6 +95,19 @@ def plot(points, temp, rows, cols):
                  'V per formula unit (A^3)',f'EOS at {temp} K: H4O model',legend=legend).split('\n')
 
 
+
+def progress_bar(progress, width=20):
+    """Equilibration + production only; premelt has no step updates."""
+    if not progress or not progress.endswith('%'):
+        return '[' + '?' * width + ']'
+    try:
+        fraction = max(0.0, min(1.0, float(progress[:-1]) / 100))
+    except ValueError:
+        return '[' + '?' * width + ']'
+    filled = int(fraction * width)
+    return '[' + '#' * filled + '.' * (width-filled) + ']'
+
+
 def render(root, viewer=True, summary=None):
     size=shutil.get_terminal_size((160,50));width=max(40,size.columns-1);height=max(12,size.lines-1)
     jobs=active(root);coverage={};queue=[]
@@ -114,10 +127,10 @@ def render(root, viewer=True, summary=None):
         queue.append(f'{t}K H4O {status}: {len(done)}/16, run {nr}, wait {remaining}')
     selected=max(TEMPS,key=lambda t:sum(j['T']==t for j in jobs)) if jobs else TEMPS[0]
     out=[summary or 'H4O EOS queue: read-only dashboard',gpu_info(),
-         f"{'target':>7} {'vpa':>6} {'GPU':>5} {'progress':>8} {'stage':>8} {'T K':>7} {'P GPa':>8} {'±':>6} {'ms/st':>6} {'ETA':>7}"]
+         f"{'target':>7} {'vpa':>6} {'GPU':>5} {'progress (eq+prod)':22} {'stage':>8} {'T K':>7} {'P GPa':>8} {'±':>6} {'ms/st':>6} {'ETA':>7}"]
     max_jobs=max(1,height-16)
     for j in jobs[:max_jobs]:
-        out.append(f"{j['T']:7} {j['v']:6.3f} {j['gpu']:>5} {j['progress']:>8} {j['stage']:>8} {j['temp']:>7} {j['pressure']:>8} {j['err']:>6} {j['ms']:>6} {j['eta']:>7}")
+        out.append(f"{j['T']:7} {j['v']:6.3f} {j['gpu']:>5} {progress_bar(j['progress']):22} {j['stage']:>8} {j['temp']:>7} {j['pressure']:>8} {j['err']:>6} {j['ms']:>6} {j['eta']:>7}")
     if len(jobs)>max_jobs:out.append(f'... {len(jobs)-max_jobs} additional workers hidden; enlarge terminal')
     if not jobs:out.append('No H4O workers visible on this node; check the allocation.')
     points=[(p,v,'done') for v,p in coverage[selected].items() if p is not None]

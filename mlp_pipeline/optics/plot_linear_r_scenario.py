@@ -28,7 +28,7 @@ def main():
     a = p.parse_args()
     out = Path(a.out)
     out.parent.mkdir(parents=True, exist_ok=True)
-    water = 0.16885
+    water = 0.16493
     hs = [hydrogen_r(20.4, 0.13, 1.52), hydrogen_r(21.8, 0.16, 1.52)]
     pressures = np.linspace(250, 450, 101)
     fig, ax = plt.subplots(figsize=(9, 6))

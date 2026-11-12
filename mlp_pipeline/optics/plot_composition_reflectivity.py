@@ -35,7 +35,7 @@ def main():
   ax.grid(alpha=.2)
  axes[0].set_ylabel('Reflectivity at 532 nm (%)')
  fig.legend(handles=[Line2D([],[],color='#157b88',marker='o',linestyle='none',label='PBE DFT-MD / PBE optics'),Line2D([],[],color='#a03b67',marker='D',linestyle='none',label='GRACE-MD / PBE optics'),Line2D([],[],color='grey',linestyle='--',label='7000 K frozen-endpoint scenario')],loc='lower center',bbox_to_anchor=(.5,-.07),ncol=3,fontsize=9)
- fig.suptitle('H–O reflectivity near 350 GPa | n₀ = 1.52 | density response\nFaint: snapshots; solid: mean ± sample SD (n = 2–3). Pressure labels are trajectory means.', fontsize=12)
+ fig.suptitle('H–O reflectivity near 350 GPa | n₀ = 1.52 | density response\nFaint: snapshots; solid: mean ± sample SD (n = 2–5). Pressure labels are trajectory means.', fontsize=12)
  out=Path(a.out);out.parent.mkdir(parents=True,exist_ok=True)
  for ext in ('png','pdf'):fig.savefig(str(out)+'.'+ext,dpi=180,bbox_inches='tight')
  print(f'Wrote {out}.png/.pdf; {len(groups)} state groups.')

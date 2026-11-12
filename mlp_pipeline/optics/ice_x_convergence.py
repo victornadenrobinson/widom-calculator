@@ -12,6 +12,8 @@ import shutil
 TESTS = {
     'cold300K': {'ENCUT': '1100', 'SIGMA': '0.025852'},
     'cold300K_bands128': {'ENCUT': '1100', 'SIGMA': '0.025852', 'NBANDS': '128'},
+    'electronic5000K_bands128': {'ENCUT': '1100', 'SIGMA': '0.430867', 'NBANDS': '128'},
+    'electronic7000K_bands128': {'ENCUT': '1100', 'SIGMA': '0.603213', 'NBANDS': '128'},
     'cold300K_bands192': {'ENCUT': '1100', 'SIGMA': '0.025852', 'NBANDS': '192'},
     'cold300K_mesh10_bands128': {'ENCUT': '1100', 'SIGMA': '0.025852', 'NBANDS': '128', 'mesh': 10},
     'cold300K_encut1000_mesh10_bands128': {'SIGMA': '0.025852', 'NBANDS': '128', 'mesh': 10, 'ENCUT': '1000'},

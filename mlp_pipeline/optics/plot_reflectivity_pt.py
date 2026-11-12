@@ -55,7 +55,6 @@ def main():
     for ax in axes: ax.set_xlim(50,430);ax.grid(alpha=.18)
     fig.legend(*axes[0].get_legend_handles_labels(),loc='outside lower center',ncol=2,fontsize=9)
     fig.suptitle('H₂O and H reflectivity: different media and thermodynamic paths')
-    fig.text(.5,.12,'Millot calculated pressures interpolated; Rillo points visually digitized. French data omitted: T per point not established.',ha='center',fontsize=8)
     for ext in ('png','pdf'):fig.savefig(str(out)+'.'+ext,dpi=180)
     plt.close(fig)
     with open(str(out)+'.csv','w',newline='') as f:

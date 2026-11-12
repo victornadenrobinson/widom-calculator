@@ -42,6 +42,17 @@ def main():
             ax.fill_between(pressures, 100*lo, 100*hi, color=color, alpha=.08)
         for pressure in pressures:
             rows.append([pressure, label, fraction, lo, hi])
+    # Millot et al. Methods: empirical R(Us) fit and the two published Us-up fits.
+    # Restrict to high-pressure branch where both fits are applicable. P0 and
+    # density are approximate; spread is model sensitivity, not a confidence band.
+    us = np.linspace(17.4, 20.1, 150)
+    millot_r = 1.35 + 5.82 / (1 + (17.51/us)**41.91)
+    p_piece = 2.5 + 1.6 * us * (us - 5.762) / 1.222
+    p_linear = 2.5 + 1.6 * us * (us - 4.378) / 1.362
+    ax.plot(p_piece, millot_r, color='tab:red', lw=2,
+            label='Millot: measured R fit, piecewise EOS')
+    ax.fill_betweenx(millot_r, p_piece, p_linear, color='tab:red', alpha=.15,
+                     label='EOS fit sensitivity; not 1σ')
     ax.plot([363.44], [100*water], 'ko', markersize=6, label='Our H2O: PBE optics, 7000 K')
     ax.plot([350], [11], marker='v', linestyle='none', color='tab:red', markersize=9,
             label='Millot H2O: ~350 GPa, up to ~11%')
@@ -53,7 +64,7 @@ def main():
     ax.axvspan(250, 450, color='grey', alpha=.035)
     ax.set(xlabel='Pressure (GPa)', ylabel='Reflectivity at 532 nm (%)', ylim=(0, 75),
            title='532 nm: mixture scenario and literature context')
-    ax.text(.02, .02, 'Dashed lines: frozen endpoint scenario for 7000 K, not pressure predictions.\nMillot experiment: changing shock T; approximate maximum / bound.\nH diamonds: fit at 140–170 GPa, ~1800–2700 K; n0 = 1.52.',
+    ax.text(.02, .02, 'Dashed lines: frozen endpoint scenario for 7000 K, not pressure predictions.\nMillot: changing shock T; ρ₀≈1.6 g/cc; approximate mapping.\nH diamonds: fit at 140–170 GPa, ~1800–2700 K; n0 = 1.52.',
             transform=ax.transAxes, fontsize=9, va='bottom', bbox=dict(facecolor='white', alpha=.85, edgecolor='.8'))
     ax.legend(loc='upper center', ncol=2, fontsize=8); ax.set_xlim(125, 455); ax.grid(alpha=.2); fig.tight_layout()
     for ext in ('png', 'pdf'): fig.savefig(str(out)+'.'+ext, dpi=180)

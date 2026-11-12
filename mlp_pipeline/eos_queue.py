@@ -27,7 +27,7 @@ def resolve(group, model):
     for c in group['compositions']:
         pts=[]
         hper={'h2o':2,'h2.25':2.25,'h3o':3,'h4o':4,'h5o':5,'h7o':7}.get(c)
-        nrep=min((3,4),key=lambda n:abs(2*n**3*(1+hper)-384)) if hper else 0
+        nrep=group.get('nrep',min((3,4),key=lambda n:abs(2*n**3*(1+hper)-384))) if hper else 0
         expected_N=round(2*nrep**3*(1+hper)) if hper else 729
         for d in (ROOT/'runs/eos_live').glob(f'{model}_{c}_{group["T"]}K_*at'):
             f=d/(d.name+'.csv')
@@ -75,6 +75,7 @@ def main():
     for g in groups:
         if not isinstance(g.get('T'),int) or g['T']<=0 or not g.get('compositions') or set(g['compositions'])-set(COMPS):ap.error('Each group needs positive integer T and supported compositions')
         if any(not isinstance(g[k], (int, float)) or not math.isfinite(g[k]) or g[k] <= 0 for k in ('ps', 'eq') if k in g):ap.error('ps and eq must be positive finite numbers')
+        if 'nrep' in g and (not isinstance(g['nrep'],int) or isinstance(g['nrep'],bool) or g['nrep']<1):ap.error('nrep must be a positive integer')
         if 'volumes' in g and 'pressures_GPa' in g:ap.error('Choose volumes or pressures_GPa, not both')
         if 'pressures_GPa' in g and (not g['pressures_GPa'] or any(not math.isfinite(p) or p<=0 for p in g['pressures_GPa'])):ap.error('Pressures must be positive and finite')
     tokens=os.environ.get('CUDA_VISIBLE_DEVICES','').split(',')
@@ -82,7 +83,7 @@ def main():
     if ng<1 or a.per_gpu<1:ap.error('Positive GPU and worker counts required')
     name=Path(a.model.split(':',1)[-1]).name
     schedule=[dict(T=g['T'],comp=' '.join(g['compositions']),
-        pressure=str(g.get('pressures_GPa','explicit V' if 'volumes' in g else 'volume scan')),
+        pressure=str(g.get('pressures_GPa','explicit V' if 'volumes' in g else 'volume scan')), nrep=g.get('nrep','automatic'),
         state='waiting',seconds=estimate(g,name,ng*a.per_gpu)) for g in groups]
     for r in schedule:print(r)
     print('Estimates are full-group historical costs, not deadlines; saved points shorten reruns. Startup/tail and changed GPU load add uncertainty.')
@@ -107,7 +108,7 @@ def main():
                 NGPU=str(ng),PER_GPU=str(a.per_gpu),NV=str(g.get('nv',16)),VPA_JSON=json.dumps(volumes),
                 NEARBY_START='1',PLOT='braille',REFRESH='10',OMP_NUM_THREADS='1',EOS_QUEUE=json.dumps(schedule),
                 EOS_REPO_ROOT=str(ROOT),EOS_CODE_DIR=str(CODE_DIR))
-            for key in ('ps', 'eq'):
+            for key in ('ps', 'eq', 'nrep'):
                 if key in g: env[key.upper()]=str(g[key])
             child=subprocess.Popen(['bash',str(CODE_DIR/'eos_live.sh')],env=env)
             rc=child.wait();schedule[idx]['state']='done' if rc==0 else 'failed'

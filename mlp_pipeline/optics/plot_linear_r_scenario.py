@@ -42,22 +42,27 @@ def main():
             ax.fill_between(pressures, 100*lo, 100*hi, color=color, alpha=.08)
         for pressure in pressures:
             rows.append([pressure, label, fraction, lo, hi])
-    # Millot et al. Methods: empirical R(Us) fit and the two published Us-up fits.
-    # Restrict to high-pressure branch where both fits are applicable. P0 and
-    # density are approximate; spread is model sensitivity, not a confidence band.
-    us = np.linspace(17.4, 20.1, 150)
-    millot_r = 1.35 + 5.82 / (1 + (17.51/us)**41.91)
-    p_piece = 2.5 + 1.6 * us * (us - 5.762) / 1.222
-    p_linear = 2.5 + 1.6 * us * (us - 4.378) / 1.362
-    ax.plot(p_piece, millot_r, color='tab:red', lw=2,
-            label='Millot: measured R fit, piecewise EOS')
-    ax.fill_betweenx(millot_r, p_piece, p_linear, color='tab:red', alpha=.15,
-                     label='EOS fit sensitivity; not 1σ')
+    # Millot SI table 1: observed shot pressure and reflectivity, 1 sigma.
+    exp_p = [165.0,175.0,177.9,187.5,218.7,236.0,260.0,275.9,284.8,292.6,355.8]
+    exp_dp = [2.5,2.5,2.6,2.7,3.2,3.2,3.9,3.9,3.8,3.9,4.9]
+    exp_r = [1.0,1.1,1.6,2.0,1.7,1.8,3.1,4.6,5.9,5.8,11.0]
+    exp_dr = [.5,.5,.5,.5,.5,.5,.7,.9,1.7,1.1,3.4]
+    ax.errorbar(exp_p, exp_r, xerr=exp_dp, yerr=exp_dr, fmt='o',
+                color='tab:red', markersize=3, capsize=1, elinewidth=.7,
+                label='Millot H2O: experiment, shock Hugoniot')
+    # SI tables 3, 5 and 6: infer P at each table-3 density by linear
+    # interpolation of tabulated P at the same temperature. No extrapolation.
+    # Each tuple: T, rho, R %, rho_low, P_low, rho_high, P_high.
+    calculated = [(5000,3.345,.83692,3.25,177.51,3.4,203.10),
+                  (6000,3.458,1.862,3.4,215.76,3.537,240.76),
+                  (7000,3.557,3.27828,3.5,246.97,3.6,265.58),
+                  (8000,3.637,5.53853,3.6,277.79,3.709,301.21),
+                  (10000,3.758,10.23318,3.003,188.15,3.826,351.55)]
+    calc_p = [p0+(rho-r0)/(r1-r0)*(p1-p0)
+              for T,rho,R,r0,p0,r1,p1 in calculated]
+    ax.plot(calc_p,[row[2] for row in calculated], 's', color='purple',
+            markersize=4, label='Millot H2O: PBE MD / HSE06 optics, P interpolated')
     ax.plot([363.44], [100*water], 'ko', markersize=6, label='Our H2O: PBE optics, 7000 K')
-    ax.plot([350], [11], marker='v', linestyle='none', color='tab:red', markersize=9,
-            label='Millot H2O: ~350 GPa, up to ~11%')
-    ax.annotate('', xy=(250, .25), xytext=(250, 2), arrowprops=dict(arrowstyle='-|>', color='tab:red'))
-    ax.plot([250], [2], marker='_', color='tab:red', markersize=10, label='Millot: below ~2% up to ~250 GPa')
     ax.plot([140, 170], [100*h for h in hs], linestyle='none', marker='D',
             markersize=6, markerfacecolor='white', markeredgecolor='black',
             label='H: experimental Drude fits, n0 converted')
@@ -72,7 +77,7 @@ def main():
     ax.axvspan(250, 450, color='grey', alpha=.035)
     ax.set(xlabel='Pressure (GPa)', ylabel='Reflectivity at 532 nm (%)', ylim=(0, 75),
            title='532 nm: mixture scenario and literature context')
-    ax.text(.02, .02, 'Dashed lines: frozen endpoint scenario for 7000 K, not pressure predictions.\nMillot: changing shock T; ρ₀≈1.6 g/cc; approximate mapping.\nOrange: approximate figure readings (±4 GPa, ±1.5 percentage points).',
+    ax.text(.02, .02, 'Dashed lines: frozen endpoint scenario for 7000 K, not pressure predictions.\nMillot: changing shock T; calculated P interpolated from EOS tables.\nOrange: approximate figure readings (±4 GPa, ±1.5 percentage points).',
             transform=ax.transAxes, fontsize=9, va='bottom', bbox=dict(facecolor='white', alpha=.85, edgecolor='.8'))
     ax.legend(loc='upper center', ncol=2, fontsize=8); ax.set_xlim(55, 455); ax.grid(alpha=.2); fig.tight_layout()
     for ext in ('png', 'pdf'): fig.savefig(str(out)+'.'+ext, dpi=180)

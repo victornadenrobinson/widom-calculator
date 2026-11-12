@@ -57,12 +57,20 @@ def main():
         states = sorted(set(zip(pp,tt)))
         means = [np.mean([r['R_percent'] for r in rr if (r['pressure_GPa'],r['temperature_K'])==state]) for state in states]
         if label.startswith('Our '):
+            for state, mean in zip(states, means):
+                values = [r['R_percent'] for r in rr if (r['pressure_GPa'],r['temperature_K']) == state]
+                if len(values) >= 2:
+                    axes[0].errorbar(state[0], mean, yerr=np.std(values, ddof=1), fmt='none', color='black', capsize=3, zorder=2)
             axes[0].scatter(pp,vv,c=tt,cmap='plasma',norm=tn,marker=marker,s=48,alpha=.25)
-            axes[0].scatter([x[0] for x in states],means,c=[x[1] for x in states],cmap='plasma',norm=tn,marker=marker,s=54,edgecolor='black',linewidth=.5,label=display+' mean')
+            axes[0].scatter([x[0] for x in states],means,c=[x[1] for x in states],cmap='plasma',norm=tn,marker=marker,s=54,edgecolor='black',linewidth=.5,label=display+' mean ± SD (n≥2)')
             # The snapshots share the same P,T: larger translucent halos show
             # individual points under the mean without shifting coordinates.
             axes[1].scatter(pp,tt,c=vv,cmap='viridis',norm=rn,marker=marker,s=140,alpha=.2)
         else:
+            for state, mean in zip(states, means):
+                values = [r['R_percent'] for r in rr if (r['pressure_GPa'],r['temperature_K']) == state]
+                if len(values) >= 2:
+                    axes[0].errorbar(state[0], mean, yerr=np.std(values, ddof=1), fmt='none', color='black', capsize=3, zorder=2)
             axes[0].scatter(pp,vv,c=tt,cmap='plasma',norm=tn,marker=marker,s=50,edgecolor='black',linewidth=.5,label=display)
         axes[1].scatter([x[0] for x in states],[x[1] for x in states],c=means,cmap='viridis',norm=rn,marker=marker,s=50,edgecolor='black',linewidth=.5,label=display)
         for pressure,temp in states:

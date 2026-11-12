@@ -67,10 +67,13 @@ def main():
     ax.scatter([264.8,264.8,264.8,363.44,363.44,363.44], [11.624,9.471,7.801,16.493,13.595,13.148],
                marker='o', color='black', alpha=.23, s=42)
     ax.scatter([373.05,373.05,373.05], [16.715,18.737,18.523], marker='D', color='black', alpha=.23, s=42)
+    ax.errorbar([264.8,363.44], [np.mean([11.624,9.471,7.801]),np.mean([16.493,13.595,13.148])],
+               yerr=[np.std([11.624,9.471,7.801],ddof=1),np.std([16.493,13.595,13.148],ddof=1)], fmt='none', color='black', capsize=3)
     ax.scatter([264.8,363.44], [np.mean([11.624,9.471,7.801]),np.mean([16.493,13.595,13.148])],
-               marker='o', color='black', s=45, label='Our H2O: mean of 3 PBE snapshots')
+               marker='o', color='black', s=45, label='Our H2O: mean ± 1 SD, 3 PBE snapshots')
+    ax.errorbar([373.05], [np.mean([16.715,18.737,18.523])], yerr=[np.std([16.715,18.737,18.523],ddof=1)], fmt='none', color='black', capsize=3)
     ax.scatter([373.05], [np.mean([16.715,18.737,18.523])], marker='D', color='black', s=42,
-               label='Our H3O: mean of 3 PBE snapshots')
+               label='Our H3O: mean ± 1 SD, 3 PBE snapshots')
     ax.scatter([314.27,427.14], [56.858,60.797], color='black', marker='*', s=80, label='Our pure H: one PBE snapshot each')
     ax.plot([140, 170], [100*h for h in hs], linestyle='none', marker='D',
             markersize=6, markerfacecolor='white', markeredgecolor='black',

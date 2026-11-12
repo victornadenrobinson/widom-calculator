@@ -61,12 +61,20 @@ def main():
     ax.plot([140, 170], [100*h for h in hs], linestyle='none', marker='D',
             markersize=6, markerfacecolor='white', markeredgecolor='black',
             label='H: experimental Drude fits, n0 converted')
+    # Approximate visual readings of filled orange triangles in Rillo et al.
+    # Fig. 3: 5000 K, n0=1.49, HSE optical response / vdW-DF1 PIMD.
+    # These are manually read from a user-provided screenshot, not source data.
+    rillo_p = np.array([70, 84, 100, 122, 149, 170, 182, 199, 210, 225, 280])
+    rillo_r = np.array([25.0, 27.5, 31.5, 38.5, 43.0, 45.5, 46.8, 48.5, 49.5, 50.5, 53.0])
+    ax.errorbar(rillo_p, rillo_r, xerr=4, yerr=1.5, fmt='^', markersize=4,
+                color='darkorange', elinewidth=.7, capsize=1.5,
+                label='Rillo H: 5000 K, HSE optics, n0=1.49 (digitized)')
     ax.axvspan(250, 450, color='grey', alpha=.035)
     ax.set(xlabel='Pressure (GPa)', ylabel='Reflectivity at 532 nm (%)', ylim=(0, 75),
            title='532 nm: mixture scenario and literature context')
-    ax.text(.02, .02, 'Dashed lines: frozen endpoint scenario for 7000 K, not pressure predictions.\nMillot: changing shock T; ρ₀≈1.6 g/cc; approximate mapping.\nH diamonds: fit at 140–170 GPa, ~1800–2700 K; n0 = 1.52.',
+    ax.text(.02, .02, 'Dashed lines: frozen endpoint scenario for 7000 K, not pressure predictions.\nMillot: changing shock T; ρ₀≈1.6 g/cc; approximate mapping.\nOrange: approximate figure readings (±4 GPa, ±1.5 percentage points).',
             transform=ax.transAxes, fontsize=9, va='bottom', bbox=dict(facecolor='white', alpha=.85, edgecolor='.8'))
-    ax.legend(loc='upper center', ncol=2, fontsize=8); ax.set_xlim(125, 455); ax.grid(alpha=.2); fig.tight_layout()
+    ax.legend(loc='upper center', ncol=2, fontsize=8); ax.set_xlim(55, 455); ax.grid(alpha=.2); fig.tight_layout()
     for ext in ('png', 'pdf'): fig.savefig(str(out)+'.'+ext, dpi=180)
     plt.close(fig)
     with open(str(out)+'.csv', 'w', newline='') as f:

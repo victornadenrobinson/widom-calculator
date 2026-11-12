@@ -31,7 +31,9 @@ def main():
     add('Our H2O','PBE snapshot frame 19','1.52',363.44,7000,16.493)
     add('Our H2O','PBE snapshot frame 28','1.52',363.44,7000,13.595)
     add('Our H2O','PBE snapshot frame 19','1.52',264.80,7000,11.624)
-    add('Our H3O','PBE snapshot','1.52',373.05,7000,16.715)
+    add('Our H2O','PBE snapshot frame 28','1.52',264.80,7000,9.471)
+    add('Our H3O','PBE snapshot frame 19','1.52',373.05,7000,16.715)
+    add('Our H3O','PBE snapshot frame 28','1.52',373.05,7000,18.737)
     for pressure,r in [(70,25),(84,27.5),(100,31.5),(122,38.5),(149,43),(170,45.5),(182,46.8),(199,48.5),(210,49.5),(225,50.5),(280,53)]:
         add('Rillo H 5000 K','HSE optics; screenshot reading; 539 nm','1.49',pressure,5000,r)
     # French Fig. 3 has no per-point temperatures; excluded until sourced.
@@ -46,11 +48,16 @@ def main():
         rr=[r for r in rows if r['series']==label]
         if not rr: continue
         pp=[r['pressure_GPa'] for r in rr];tt=[r['temperature_K'] for r in rr];vv=[r['R_percent'] for r in rr]
-        axes[0].scatter(pp,vv,c=tt,cmap='plasma',norm=tn,marker=marker,s=50,edgecolor='black',linewidth=.5,label=display)
-        # Multiple snapshots at exactly the same state overlap in P-T space.
-        # Show their arithmetic mean there; keep individual rows in output CSV.
         states = sorted(set(zip(pp,tt)))
         means = [np.mean([r['R_percent'] for r in rr if (r['pressure_GPa'],r['temperature_K'])==state]) for state in states]
+        if label.startswith('Our '):
+            axes[0].scatter(pp,vv,c=tt,cmap='plasma',norm=tn,marker=marker,s=48,alpha=.25)
+            axes[0].scatter([x[0] for x in states],means,c=[x[1] for x in states],cmap='plasma',norm=tn,marker=marker,s=54,edgecolor='black',linewidth=.5,label=display+' mean')
+            # The snapshots share the same P,T: larger translucent halos show
+            # individual points under the mean without shifting coordinates.
+            axes[1].scatter(pp,tt,c=vv,cmap='viridis',norm=rn,marker=marker,s=140,alpha=.2)
+        else:
+            axes[0].scatter(pp,vv,c=tt,cmap='plasma',norm=tn,marker=marker,s=50,edgecolor='black',linewidth=.5,label=display)
         axes[1].scatter([x[0] for x in states],[x[1] for x in states],c=means,cmap='viridis',norm=rn,marker=marker,s=50,edgecolor='black',linewidth=.5,label=display)
         for pressure,temp in states:
             count=sum((r['pressure_GPa'],r['temperature_K'])==(pressure,temp) for r in rr)

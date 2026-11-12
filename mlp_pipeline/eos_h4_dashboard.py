@@ -57,6 +57,7 @@ def render(root):
         out.append(f"{j['T']:7} {j['v']:6.3f} {j['gpu']:>5} {j['progress']:>8} {j['stage']:>8} {j['temp']:>7} {j['pressure']:>8} {j['err']:>6} {j['ms']:>6} {j['eta']:>7}")
     if not jobs:out.append('No H4O workers visible on this node. Check allocation and queue status.')
     out+=['','H4O P–T coverage (● saved EOS row, · running; log10 pressure in GPa)', '          1 GPa             10             100           1000']
+    coverage={}
     for t in TEMPS:
         tag=f'ft_mfinkc_cont_h4o_{t}K_640at';path=root/'runs/eos_live'/tag/(tag+'.csv');done=[]
         try:
@@ -76,8 +77,28 @@ def render(root):
                 try:mark(float(j['pressure']),'·')
                 except ValueError:pass
         for _,p in done:mark(p,'●')
+        coverage[t]=done
         running=sum(j['T']==t for j in jobs)
         out.append(f"{t:5} K |{''.join(line)}| saved {len(set(v for v,_ in done)):2}/16  running {running}")
+    # P–V plot for the first currently running temperature, matching the old
+    # dashboard's volume-per-formula-unit convention (5 atoms per H4O).
+    selected=jobs[0]['T'] if jobs else None
+    points=[(p,5*v,'●') for v,p in coverage.get(selected,[])]
+    for job in jobs:
+        if job['T']==selected and job['pressure']:
+            try:points.append((float(job['pressure']),5*job['v'],'·'))
+            except ValueError:pass
+    if points:
+        grid=[[' ']*49 for _ in range(9)]
+        for p,v,symbol in points:
+            if p<=0:continue
+            x=max(0,min(48,round(math.log10(p)*16)))
+            y=max(0,min(8,round((46-v)/39*8)))
+            if symbol=='●' or grid[y][x]==' ':grid[y][x]=symbol
+        out += ['',f'H4O at {selected} K: V per formula unit vs pressure (● saved, · running)']
+        for i,row in enumerate(grid):out.append(f'{46-i*39/8:5.1f} |'+''.join(row))
+        out.append('      +-------------------------------------------------')
+        out.append('       1 GPa            10             100          1000')
     out+=['','Saved rows are not phase/convergence certification; blank pressures are not yet reported.',
           'This viewer does not control the queue. Ctrl-C closes only the viewer.']
     return '\n'.join(out)

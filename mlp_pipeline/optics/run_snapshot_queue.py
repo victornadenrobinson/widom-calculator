@@ -75,10 +75,13 @@ def main():
     ap=argparse.ArgumentParser(description=__doc__)
     ap.add_argument('roots',nargs='+');ap.add_argument('--plotter',required=True);ap.add_argument('--reuse',default=None)
     ap.add_argument('--start-buffer-min',type=float,default=12)
+    ap.add_argument('--vasp', choices=('vasp_std','vasp_gam'), default='vasp_std', help='VASP executable for new attempts')
     a=ap.parse_args();py=sys.executable;plotter=Path(a.plotter).resolve()
     if not plotter.is_file():raise SystemExit('Missing plotter '+str(plotter))
     if a.start_buffer_min<=0:ap.error('Start buffer must be positive')
     if not os.environ.get('SLURM_JOB_ID'):raise SystemExit('Run inside your Perlmutter allocation')
+    exe=shutil.which(a.vasp)
+    if not exe:raise SystemExit('Executable not found on PATH: '+a.vasp)
     roots=[Path(x) for x in a.roots]
     for root in roots:
         if not root.is_dir():raise SystemExit('Missing prepared root '+str(root))
@@ -109,17 +112,22 @@ def main():
             except (OSError,ValueError,RuntimeError,subprocess.CalledProcessError) as e:raise SystemExit('Cannot check remaining wall time: '+str(e))
             if seconds<a.start_buffer_min*60:
                 print(f'Stopping with {seconds/60:.1f} min remaining; rerun to continue.',flush=True);break
+            if a.vasp == 'vasp_gam':
+                kpoints=(case/'KPOINTS').read_text().splitlines()
+                if len(kpoints)<5 or kpoints[1].strip()!='0' or not kpoints[2].strip().lower().startswith('g') or kpoints[3].split()!=['1','1','1'] or any(float(x)!=0 for x in kpoints[4].split()):
+                    raise SystemExit('vasp_gam requires the prepared Gamma 1x1x1 unshifted KPOINTS: '+str(case))
             attempt=attempts/datetime.datetime.now().strftime('%Y%m%d_%H%M%S_%f');attempt.mkdir(parents=True)
             for name in ('INCAR','KPOINTS','POSCAR','POTCAR','provenance.json'):shutil.copyfile(case/name,attempt/name)
-            print(f'START {case} ({seconds/60:.1f} min remaining); log {attempt}/vasp.out',flush=True)
+            (attempt/'execution.json').write_text(json.dumps(dict(executable=a.vasp, resolved_path=exe),indent=2)+'\n')
+            print(f'START {case} executable={exe} ({seconds/60:.1f} min remaining); log {attempt}/vasp.out',flush=True)
             t0=time.monotonic()
             with (attempt/'vasp.out').open('w') as f:
-                rc=subprocess.run(['srun','-n','128','-c','2','--cpu-bind=cores','vasp_std'],cwd=attempt,stdout=f,stderr=subprocess.STDOUT).returncode
+                rc=subprocess.run(['srun','-n','128','-c','2','--cpu-bind=cores',exe],cwd=attempt,stdout=f,stderr=subprocess.STDOUT).returncode
             elapsed=time.monotonic()-t0
             if rc or not (attempt/'OUTCAR').is_file() or not (attempt/'vasprun.xml').is_file() or not valid(attempt/'OUTCAR'):
                 print(f'FAILED or incomplete (exit {rc}, {elapsed:.1f} s); inspect {attempt}; queue stopped.',flush=True);break
             result=analyse(case,attempt,plotter,py,'new run')
-            (attempt/'DONE.json').write_text(json.dumps(dict(elapsed_s=elapsed,results=result),indent=2)+'\n')
+            (attempt/'DONE.json').write_text(json.dumps(dict(elapsed_s=elapsed,results=result,executable=a.vasp,resolved_executable=exe),indent=2)+'\n')
             print(f'DONE in {elapsed:.1f} s: {attempt}',flush=True)
     print('Queue stopped or finished. Source trajectories are short and nearby frames can be correlated; optical inputs need convergence.',flush=True)
 

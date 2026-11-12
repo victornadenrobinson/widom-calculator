@@ -1,0 +1,17 @@
+series,pressure_GPa,R_percent,reading_P_GPa,reading_R_percentage_points
+PBE_MD_HSE_optics,62,2.1,3,0.5
+PBE_MD_HSE_optics,96,5.3,3,0.5
+PBE_MD_HSE_optics,125,10.2,3,0.5
+PBE_MD_HSE_optics,150,15.7,3,0.5
+PBE_MD_HSE_optics,176,19.4,3,0.5
+PBE_MD_HSE_optics,220,23.7,3,0.5
+PBE_MD_HSE_optics,302,26.6,3,0.5
+PBE_MD_HSE_optics,417,28.7,3,0.5
+HSE_MD_HSE_optics,62,2.0,3,0.5
+HSE_MD_HSE_optics,96,3.4,3,0.5
+HSE_MD_HSE_optics,125,6.1,3,0.5
+HSE_MD_HSE_optics,150,10.6,3,0.5
+HSE_MD_HSE_optics,176,14.8,3,0.5
+HSE_MD_HSE_optics,220,21.4,3,0.5
+HSE_MD_HSE_optics,302,26.0,3,0.5
+HSE_MD_HSE_optics,417,28.2,3,0.5

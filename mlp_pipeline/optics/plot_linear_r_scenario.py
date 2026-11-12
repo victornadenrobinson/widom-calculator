@@ -25,6 +25,7 @@ def hydrogen_r(plasma_ev, tau_fs, n0):
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--out', default='runs/plots/linear_R_7000K_scenario')
+    p.add_argument('--french-csv', default=None, help='approximate digitized Fig. 3 CSV')
     a = p.parse_args()
     out = Path(a.out)
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -75,12 +76,25 @@ def main():
     ax.errorbar(rillo_p, rillo_r, xerr=4, yerr=1.5, fmt='^', markersize=4,
                 color='darkorange', elinewidth=.7, capsize=1.5,
                 label='Rillo H: 5000 K, HSE optics, n0=1.49 (digitized)')
+    if a.french_csv:
+        with open(a.french_csv, newline='') as f:
+            french = list(csv.DictReader(f))
+        for series, marker, color, label in [
+            ('PBE_MD_HSE_optics', 's', 'royalblue', 'French H2O: PBE MD / HSE optics'),
+            ('HSE_MD_HSE_optics', 'D', 'deepskyblue', 'French H2O: HSE MD / HSE optics')]:
+            subset = [r for r in french if r['series'] == series]
+            ax.errorbar([float(r['pressure_GPa']) for r in subset],
+                        [float(r['R_percent']) for r in subset],
+                        xerr=[float(r['reading_P_GPa']) for r in subset],
+                        yerr=[float(r['reading_R_percentage_points']) for r in subset],
+                        fmt=marker, ms=4, color=color, capsize=1, elinewidth=.6,
+                        label=label + ' (digitized; n0~1.33)')
     ax.axvspan(250, 450, color='grey', alpha=.035)
     ax.set(xlabel='Pressure (GPa)', ylabel='Reflectivity at 532 nm (%)', ylim=(0, 75),
            title='532 nm: mixture scenario and literature context')
-    fig.text(.09, .015, 'Dashed lines: frozen endpoint scenario for 7000 K, not pressure predictions.\nMillot: changing shock T; calculated P interpolated from EOS tables.\nOrange: approximate figure readings (±4 GPa, ±1.5 percentage points).',
+    fig.text(.09, .015, 'Dashed lines: frozen endpoint scenario for 7000 K, not pressure predictions.\nMillot: changing shock T; calculated P interpolated from EOS tables.\nOrange and blue markers: approximate figure readings, not reported statistical errors.\nFrench: liquid-water interface ~1.33; other scenarios n0=1.52 unless noted.',
             fontsize=8, va='bottom')
-    ax.legend(loc='upper center', ncol=2, fontsize=8); ax.set_xlim(55, 455); ax.grid(alpha=.2); fig.tight_layout(rect=(0, .1, 1, 1))
+    ax.legend(loc='upper center', ncol=2, fontsize=7); ax.set_xlim(55, 455); ax.grid(alpha=.2); fig.tight_layout(rect=(0, .12, 1, 1))
     for ext in ('png', 'pdf'): fig.savefig(str(out)+'.'+ext, dpi=180)
     plt.close(fig)
     with open(str(out)+'.csv', 'w', newline='') as f:

@@ -42,16 +42,18 @@ def main():
             ax.fill_between(pressures, 100*lo, 100*hi, color=color, alpha=.08)
         for pressure in pressures:
             rows.append([pressure, label, fraction, lo, hi])
-    ax.plot([363.44], [100*water], 'ko', markersize=6, label='Our H2O snapshot: 7000 K')
+    ax.plot([363.44], [100*water], 'ko', markersize=6, label='Our H2O: PBE optics, 7000 K')
     ax.plot([350], [11], marker='v', linestyle='none', color='tab:red', markersize=9,
             label='Millot H2O: ~350 GPa, up to ~11%')
+    ax.annotate('', xy=(250, .25), xytext=(250, 2), arrowprops=dict(arrowstyle='-|>', color='tab:red'))
+    ax.plot([250], [2], marker='_', color='tab:red', markersize=10, label='Millot: below ~2% up to ~250 GPa')
     ax.plot([140, 170], [100*h for h in hs], linestyle='none', marker='D',
             markersize=6, markerfacecolor='white', markeredgecolor='black',
-            label='H: literature Drude fits, n0 converted')
+            label='H: experimental Drude fits, n0 converted')
     ax.axvspan(250, 450, color='grey', alpha=.035)
     ax.set(xlabel='Pressure (GPa)', ylabel='Reflectivity at 532 nm (%)', ylim=(0, 75),
            title='532 nm: mixture scenario and literature context')
-    ax.text(.02, .02, 'Dashed lines: frozen endpoint scenario for 7000 K, not pressure predictions.\nMillot: different shock temperatures; approximate reported maximum.\nH diamonds: fit at 140–170 GPa, ~1800–2700 K; n0 = 1.52.',
+    ax.text(.02, .02, 'Dashed lines: frozen endpoint scenario for 7000 K, not pressure predictions.\nMillot experiment: changing shock T; approximate maximum / bound.\nH diamonds: fit at 140–170 GPa, ~1800–2700 K; n0 = 1.52.',
             transform=ax.transAxes, fontsize=9, va='bottom', bbox=dict(facecolor='white', alpha=.85, edgecolor='.8'))
     ax.legend(loc='upper center', ncol=2, fontsize=8); ax.set_xlim(125, 455); ax.grid(alpha=.2); fig.tight_layout()
     for ext in ('png', 'pdf'): fig.savefig(str(out)+'.'+ext, dpi=180)

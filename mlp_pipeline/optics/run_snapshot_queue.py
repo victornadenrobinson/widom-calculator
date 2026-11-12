@@ -76,6 +76,7 @@ def main():
     ap.add_argument('roots',nargs='+');ap.add_argument('--plotter',required=True);ap.add_argument('--reuse',default=None)
     ap.add_argument('--start-buffer-min',type=float,default=12)
     ap.add_argument('--vasp', choices=('vasp_std','vasp_gam'), default='vasp_std', help='VASP executable for new attempts')
+    ap.add_argument('--independent-dft-lock', action='store_true', help='separate lock for runs/optics/dft_md_* roots on a separate allocation; do not run older queue versions on these roots')
     a=ap.parse_args();py=sys.executable;plotter=Path(a.plotter).resolve()
     if not plotter.is_file():raise SystemExit('Missing plotter '+str(plotter))
     if a.start_buffer_min<=0:ap.error('Start buffer must be positive')
@@ -88,7 +89,15 @@ def main():
     groups=[sorted(r.glob('h*o_P*_frame*')) for r in roots]
     if any(not g for g in groups):raise SystemExit('At least one root has no prepared H–O snapshots')
     cases=[item for batch in zip_longest(*groups) for item in batch if item is not None]
-    lockpath=Path('runs/optics/liquid_snapshot_queue.lock');lockpath.parent.mkdir(parents=True,exist_ok=True)
+    if a.independent_dft_lock:
+        optics=Path('runs/optics').resolve()
+        if not all(root.resolve().parent==optics and root.name.startswith('dft_md_') for root in roots):
+            raise SystemExit('--independent-dft-lock is restricted to direct runs/optics/dft_md_* roots')
+        lockpath=Path('runs/optics/dft_md_snapshot_queue.lock')
+        print('Independent DFT-MD lock: use a separate allocation and never run an older queue on these roots.',flush=True)
+    else:
+        lockpath=Path('runs/optics/liquid_snapshot_queue.lock')
+    lockpath.parent.mkdir(parents=True,exist_ok=True)
     with lockpath.open('a') as lock:
         try:fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
         except BlockingIOError:raise SystemExit('Another liquid optical snapshot queue holds the lock')

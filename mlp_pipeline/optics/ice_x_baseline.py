@@ -84,6 +84,25 @@ def rows(element, name):
     return result
 
 
+def vasp_pressure(path):
+    """Last OUTCAR stress in kB, with VASP positive compression convention."""
+    pressure = None
+    try:
+        with Path(path).open(errors='replace') as stream:
+            for line in stream:
+                match = re.match(r'^\s*in kB\s+(.*)$', line)
+                if not match:
+                    continue
+                try:
+                    values = [float(x) for x in match.group(1).split()[:3]]
+                except ValueError:
+                    continue
+                if len(values) == 3 and all(math.isfinite(x) for x in values):
+                    pressure = sum(values) / 30.0  # kbar -> GPa; mean of xx,yy,zz
+    except OSError:
+        pass
+    return pressure
+
 def plot(a):
     import numpy as np
     import matplotlib
@@ -116,27 +135,34 @@ def plot(a):
     eps=np.mean(re_[:,1:4],axis=1)+1j*np.mean(im_[:,1:4],axis=1)
     index=np.sqrt(eps.astype(complex)); index=np.where(index.imag<0,-index,index)
     out=Path(a.out);out.parent.mkdir(parents=True,exist_ok=True)
-    ns=[1.0,1.3,1.5,1.52,1.7]
+    outcar=Path(a.outcar) if a.outcar else Path(a.xml).with_name('OUTCAR')
+    pressure=vasp_pressure(outcar)
+    p_text=f'{pressure:.2f} GPa' if pressure is not None else 'pressure unavailable'
+    labels={1.0:'Vacuum',1.3:'Clathrate scenario: lower guess',1.5:'Clathrate scenario: upper guess',1.52:'Ice VII (Millot)',1.7:'High-index sensitivity'}
+    ns=list(labels)
     refl={n:np.abs((index-n)/(index+n))**2 for n in ns}
     with Path(str(out)+'.csv').open('w',newline='') as f:
-        w=csv.writer(f);w.writerow(['energy_eV','wavelength_nm','epsilon_real_mean','epsilon_imag_mean','n','k']+[f'R_n0_{n:g}' for n in ns])
-        for i,E in enumerate(energy):w.writerow([E,HC/E,eps[i].real,eps[i].imag,index[i].real,index[i].imag]+[refl[n][i] for n in ns])
+        w=csv.writer(f);w.writerow(['pressure_GPa','energy_eV','wavelength_nm','epsilon_real_mean','epsilon_imag_mean','n','k']+[f'R_n0_{n:g}' for n in ns])
+        for i,E in enumerate(energy):w.writerow([pressure if pressure is not None else '',E,HC/E,eps[i].real,eps[i].imag,index[i].real,index[i].imag]+[refl[n][i] for n in ns])
     fig,ax=plt.subplots(figsize=(8,5),layout='constrained')
-    for n in ns:ax.plot(energy,refl[n],label=f'n₀ = {n:g}')
-    ax.set(xlim=(.5,min(5,float(energy[-1]))),ylim=(0,1),xlabel='Photon energy (eV)',ylabel='Normal-incidence reflectivity',title=f'Perfect ice X: {comment or "dielectric"} optics')
+    for n in ns:ax.plot(energy,refl[n],label=f'{labels[n]} (n₀={n:g})')
+    ax.set(xlim=(.5,min(5,float(energy[-1]))),ylim=(0,1),xlabel='Photon energy (eV)',ylabel='Normal-incidence reflectivity',title=f'Perfect ice X, {p_text}: {comment or "dielectric"} optics')
     ax.grid(alpha=.2);ax.legend(title='Incident index')
     for ext in ('png','pdf'):fig.savefig(str(out)+'.'+ext,dpi=160)
     print(f'Wrote {out}.csv/.png/.pdf; dielectric response: {comment or "unspecified"}.')
+    print(f'VASP pressure: {p_text} (mean diagonal stress, positive compression; source: {outcar}).')
     for wavelength in (532,1064):
         e=HC/wavelength
-        if energy[0]<=e<=energy[-1]:print(f'Illustrative {wavelength} nm ({e:.3f} eV): '+', '.join(f'n0={n:g}: R={np.interp(e,energy,refl[n]):.4f}' for n in ns))
-    print('Illustrative wavelengths and incident indices are not established experiment settings. Cubic isotropic mean; verify convergence, intraband treatment and VASP completion.')
+        if energy[0]<=e<=energy[-1]:
+            print(f'  {wavelength} nm ({e:.3f} eV), at {p_text}:')
+            for n in ns: print(f'    {labels[n]} (n0={n:g}): R={100*np.interp(e,energy,refl[n]):.3f}%')
+    print('Clathrate indices are illustrative hypotheses, not independently calculated or measured. Verify experimental wavelength, convergence, intraband response and VASP completion.')
 
 
 def main():
     p=argparse.ArgumentParser(description=__doc__);sub=p.add_subparsers(dest='cmd',required=True)
     q=sub.add_parser('prepare');q.add_argument('--potcar',required=True);q.add_argument('--out',required=True);q.add_argument('--vpa',type=float,default=2.24);q.add_argument('--temperature',type=float,default=7000);q.add_argument('--mesh',type=int,default=8);q.add_argument('--nbands',type=int,default=64)
-    q=sub.add_parser('plot');q.add_argument('xml');q.add_argument('--out',required=True);q.add_argument('--tensor',choices=['density','current'],help='select VASP 5.4.4 density or current response')
+    q=sub.add_parser('plot');q.add_argument('xml');q.add_argument('--out',required=True);q.add_argument('--tensor',choices=['density','current'],help='select VASP 5.4.4 density or current response');q.add_argument('--outcar',help='OUTCAR for pressure (default: alongside XML)')
     a=p.parse_args()
     if a.cmd=='prepare':
         if a.vpa<=0 or a.temperature<=0 or a.mesh<1 or a.nbands<16:p.error('Invalid preparation arguments')

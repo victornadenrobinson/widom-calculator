@@ -29,7 +29,7 @@ def main():
     a = p.parse_args()
     out = Path(a.out)
     out.parent.mkdir(parents=True, exist_ok=True)
-    water = (16.493 + 13.595) / 200.0
+    water = (16.493 + 13.595 + 13.148) / 300.0
     hs = [hydrogen_r(20.4, 0.13, 1.52), hydrogen_r(21.8, 0.16, 1.52)]
     pressures = np.linspace(250, 450, 101)
     fig, ax = plt.subplots(figsize=(9, 6))
@@ -64,13 +64,14 @@ def main():
     ax.plot(calc_p,[row[2] for row in calculated], 's', color='purple',
             markersize=4, label='Millot H2O: PBE MD / HSE06 optics, P interpolated')
     # Faint points are frames; opaque points are arithmetic state means.
-    ax.scatter([264.8,264.8,363.44,363.44], [11.624,9.471,16.493,13.595],
+    ax.scatter([264.8,264.8,264.8,363.44,363.44,363.44], [11.624,9.471,7.801,16.493,13.595,13.148],
                marker='o', color='black', alpha=.23, s=42)
-    ax.scatter([373.05,373.05], [16.715,18.737], marker='D', color='black', alpha=.23, s=42)
-    ax.scatter([264.8,363.44], [np.mean([11.624,9.471]),np.mean([16.493,13.595])],
-               marker='o', color='black', s=45, label='Our H2O: mean of 2 PBE snapshots')
-    ax.scatter([373.05], [np.mean([16.715,18.737])], marker='D', color='black', s=42,
-               label='Our H3O: mean of 2 PBE snapshots')
+    ax.scatter([373.05,373.05,373.05], [16.715,18.737,18.523], marker='D', color='black', alpha=.23, s=42)
+    ax.scatter([264.8,363.44], [np.mean([11.624,9.471,7.801]),np.mean([16.493,13.595,13.148])],
+               marker='o', color='black', s=45, label='Our H2O: mean of 3 PBE snapshots')
+    ax.scatter([373.05], [np.mean([16.715,18.737,18.523])], marker='D', color='black', s=42,
+               label='Our H3O: mean of 3 PBE snapshots')
+    ax.scatter([314.27,427.14], [56.858,60.797], color='black', marker='*', s=80, label='Our pure H: one PBE snapshot each')
     ax.plot([140, 170], [100*h for h in hs], linestyle='none', marker='D',
             markersize=6, markerfacecolor='white', markeredgecolor='black',
             label='H: experimental Drude fits, n0 converted')
@@ -98,7 +99,7 @@ def main():
     ax.axvspan(250, 450, color='grey', alpha=.035)
     ax.set(xlabel='Pressure (GPa)', ylabel='Reflectivity at 532 nm (%)', ylim=(0, 75),
            title='532 nm: mixture scenario and literature context')
-    fig.text(.09, .015, 'Dashed lines: frozen endpoints; H2O endpoint = 363 GPa two-frame mean.\nMillot: changing shock T; calculated P interpolated from EOS tables.\nOrange and blue markers: approximate figure readings, not reported statistical errors.\nFrench: liquid-water interface ~1.33; other scenarios n0=1.52 unless noted.',
+    fig.text(.09, .015, 'Dashed lines: frozen endpoints; H2O endpoint = 363 GPa three-frame mean.\nMillot: changing shock T; calculated P interpolated from EOS tables.\nOrange and blue markers: approximate figure readings, not reported statistical errors.\nFrench: liquid-water interface ~1.33; other scenarios n0=1.52 unless noted.',
             fontsize=8, va='bottom')
     ax.legend(loc='upper center', ncol=2, fontsize=7); ax.set_xlim(55, 455); ax.grid(alpha=.2); fig.tight_layout(rect=(0, .12, 1, 1))
     for ext in ('png', 'pdf'): fig.savefig(str(out)+'.'+ext, dpi=180)
@@ -106,7 +107,7 @@ def main():
     with open(str(out)+'.csv', 'w', newline='') as f:
         w = csv.writer(f); w.writerow(['pressure_GPa', 'composition', 'added_H2_formula_fraction', 'R_H_140GPa_fit', 'R_H_170GPa_fit']); w.writerows(rows)
     print(f'Wrote {out}.png/.pdf/.csv; frozen sensitivity assumptions, not pressure isotherms.')
-    print(f'H endpoints at n0=1.52: {100*hs[0]:.2f}%, {100*hs[1]:.2f}%; H2O 363 GPa two-frame mean {100*water:.3f}%.')
+    print(f'H endpoints at n0=1.52: {100*hs[0]:.2f}%, {100*hs[1]:.2f}%; H2O 363 GPa three-frame mean {100*water:.3f}%.')
 
 
 if __name__ == '__main__': main()

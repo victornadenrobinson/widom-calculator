@@ -30,10 +30,15 @@ def main():
         add('Millot PBE MD / HSE optics','H2O calculation; P interpolated','1.52',p0+(rho-r0)*(p1-p0)/(r1-r0),temp,r)
     add('Our H2O','PBE snapshot frame 19','1.52',363.44,7000,16.493)
     add('Our H2O','PBE snapshot frame 28','1.52',363.44,7000,13.595)
+    add('Our H2O','PBE snapshot frame 37','1.52',363.44,7000,13.148)
     add('Our H2O','PBE snapshot frame 19','1.52',264.80,7000,11.624)
     add('Our H2O','PBE snapshot frame 28','1.52',264.80,7000,9.471)
+    add('Our H2O','PBE snapshot frame 37','1.52',264.80,7000,7.801)
     add('Our H3O','PBE snapshot frame 19','1.52',373.05,7000,16.715)
     add('Our H3O','PBE snapshot frame 28','1.52',373.05,7000,18.737)
+    add('Our H3O','PBE snapshot frame 37','1.52',373.05,7000,18.523)
+    add('Our H','PBE snapshot frame 13','1.52',314.27,7000,56.858)
+    add('Our H','PBE snapshot frame 13','1.52',427.14,7000,60.797)
     for pressure,r in [(70,25),(84,27.5),(100,31.5),(122,38.5),(149,43),(170,45.5),(182,46.8),(199,48.5),(210,49.5),(225,50.5),(280,53)]:
         add('Rillo H 5000 K','HSE optics; screenshot reading; 539 nm','1.49',pressure,5000,r)
     # French Fig. 3 has no per-point temperatures; excluded until sourced.
@@ -41,9 +46,10 @@ def main():
             'Millot PBE MD / HSE optics':('s','Millot H₂O: PBE MD / HSE optics (n₀=1.52)'),
             'Our H2O':('D','Our H₂O: PBE optics (n₀=1.52)'),
             'Our H3O':('P','Our H₃O: PBE optics (n₀=1.52)'),
+            'Our H':('*','Our H: PBE optics (n₀=1.52)'),
             'Rillo H 5000 K':('^','Rillo H: HSE optics (n₀=1.49; 539 nm)')}
     fig,axes=plt.subplots(1,2,figsize=(15,7),layout='constrained')
-    tn=Normalize(4500,11000); rn=Normalize(0,60)
+    tn=Normalize(4500,11000); rn=Normalize(0,65)
     for label,(marker,display) in styles.items():
         rr=[r for r in rows if r['series']==label]
         if not rr: continue

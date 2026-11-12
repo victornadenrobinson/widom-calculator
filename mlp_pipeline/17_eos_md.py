@@ -9,7 +9,7 @@ D_H, D_O: slope of the MSD over the second half of production (A^2/fs * 0.1 = cm
 """
 import os as _os; _os.environ.setdefault("TF_FORCE_GPU_ALLOW_GROWTH", "true")   # several processes can share one GPU (TensorFlow otherwise takes nearly all of its memory in the first one)
 
-import argparse, json, os, time
+import argparse, fcntl, json, os, time
 from importlib import import_module
 import numpy as np
 import pandas as pd
@@ -342,4 +342,8 @@ if __name__ == "__main__":
             print(f"{tag}: {a.p_target:g} GPa skipped: outside the DFT EOS data (no volume)", flush=True); continue
         row = run_one(a, calc, v, tag)
         f = os.path.join(a.outdir, f"{tag}.csv")
-        pd.DataFrame([row]).to_csv(f, mode="a", header=not os.path.exists(f), index=False)
+        # Multiple EOS volumes can finish simultaneously in the same table.
+        with open(f + ".lock", "a") as table_lock:
+            fcntl.flock(table_lock, fcntl.LOCK_EX)
+            pd.DataFrame([row]).to_csv(f, mode="a", header=not os.path.exists(f) or os.path.getsize(f) == 0, index=False)
+            fcntl.flock(table_lock, fcntl.LOCK_UN)

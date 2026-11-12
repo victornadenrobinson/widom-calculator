@@ -25,6 +25,7 @@ def hydrogen_r(plasma_ev, tau_fs, n0):
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--out', default='runs/plots/linear_R_7000K_scenario')
+    p.add_argument('--dft-csv', default='data/final_model/optics/dft_md_reflectivity_20261112.csv')
     p.add_argument('--french-csv', default=None, help='approximate digitized Fig. 3 CSV')
     a = p.parse_args()
     out = Path(a.out)
@@ -75,6 +76,18 @@ def main():
     ax.scatter([373.05], [np.mean([16.715,18.737,18.523])], marker='D', color='black', s=42,
                label='Our H3O: mean ± 1 SD, 3 PBE snapshots')
     ax.scatter([314.27,427.14], [56.858,60.797], color='black', marker='*', s=80, label='Our pure H: one PBE snapshot each')
+    # DFT-MD snapshots: show only 7000 K here; pressure is the DFT-MD source mean.
+    with open(a.dft_csv, newline='') as f:
+        dft = list(csv.DictReader(f))
+    for comp, marker in [('H','X'),('H2.25O','v'),('H5.024O','h'),('H7O','>')]:
+        subset = [r for r in dft if r['composition']==comp and float(r['temperature_K'])==7000]
+        if not subset: continue
+        ps = [float(r['pressure_GPa']) for r in subset]
+        vals = [float(r['density_R_percent']) for r in subset]
+        ax.scatter(ps, vals, marker=marker, color='teal', alpha=.25, s=48)
+        mean = np.mean(vals); sd = np.std(vals,ddof=1) if len(vals)>1 else None
+        ax.errorbar(np.mean(ps), mean, yerr=sd, fmt=marker, color='teal',
+                    markersize=5, capsize=2, label=f'{comp}: PBE DFT-MD/optics (7000 K)')
     ax.plot([140, 170], [100*h for h in hs], linestyle='none', marker='D',
             markersize=6, markerfacecolor='white', markeredgecolor='black',
             label='H: experimental Drude fits, n0 converted')
@@ -104,7 +117,9 @@ def main():
            title='532 nm: mixture scenario and literature context')
     fig.text(.09, .015, 'Dashed lines: frozen endpoints; H2O endpoint = 363 GPa three-frame mean.\nMillot: changing shock T; calculated P interpolated from EOS tables.\nOrange and blue markers: approximate figure readings, not reported statistical errors.\nFrench: liquid-water interface ~1.33; other scenarios n0=1.52 unless noted.',
             fontsize=8, va='bottom')
-    ax.legend(loc='upper center', ncol=2, fontsize=7); ax.set_xlim(55, 455); ax.grid(alpha=.2); fig.tight_layout(rect=(0, .12, 1, 1))
+    handles, labels = ax.get_legend_handles_labels()
+    fig.legend(handles, labels, loc='lower center', bbox_to_anchor=(.5,.11), ncol=3, fontsize=6.5)
+    ax.set_xlim(55, 455); ax.grid(alpha=.2); fig.tight_layout(rect=(0, .35, 1, 1))
     for ext in ('png', 'pdf'): fig.savefig(str(out)+'.'+ext, dpi=180)
     plt.close(fig)
     with open(str(out)+'.csv', 'w', newline='') as f:

@@ -15,6 +15,7 @@ import numpy as np
 def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--out',default='runs/plots/reflectivity_PT')
+    p.add_argument('--dft-csv', default='data/final_model/optics/dft_md_reflectivity_20261112.csv')
     a=p.parse_args(); out=Path(a.out); out.parent.mkdir(parents=True,exist_ok=True)
     rows=[]
     def add(label,method,n0,pres,temp,r):
@@ -39,6 +40,11 @@ def main():
     add('Our H3O','PBE snapshot frame 37','1.52',373.05,7000,18.523)
     add('Our H','PBE snapshot frame 13','1.52',314.27,7000,56.858)
     add('Our H','PBE snapshot frame 13','1.52',427.14,7000,60.797)
+    with open(a.dft_csv, newline='') as f:
+        for row in csv.DictReader(f):
+            add('Our '+row['composition']+' DFT-MD',
+                'PBE DFT-MD / PBE optics; frame '+row['frame'], '1.52',
+                float(row['pressure_GPa']),float(row['temperature_K']),float(row['density_R_percent']))
     for pressure,r in [(70,25),(84,27.5),(100,31.5),(122,38.5),(149,43),(170,45.5),(182,46.8),(199,48.5),(210,49.5),(225,50.5),(280,53)]:
         add('Rillo H 5000 K','HSE optics; screenshot reading; 539 nm','1.49',pressure,5000,r)
     # French Fig. 3 has no per-point temperatures; excluded until sourced.
@@ -47,6 +53,10 @@ def main():
             'Our H2O':('D','Our H₂O: PBE optics (n₀=1.52)'),
             'Our H3O':('P','Our H₃O: PBE optics (n₀=1.52)'),
             'Our H':('*','Our H: PBE optics (n₀=1.52)'),
+            'Our H DFT-MD':('X','H: PBE DFT-MD / PBE optics'),
+            'Our H2.25O DFT-MD':('v','H₂.₂₅O: PBE DFT-MD / PBE optics'),
+            'Our H5.024O DFT-MD':('h','H₅.₀₂₄O: PBE DFT-MD / PBE optics'),
+            'Our H7O DFT-MD':('>','H₇O: PBE DFT-MD / PBE optics'),
             'Rillo H 5000 K':('^','Rillo H: HSE optics (n₀=1.49; 539 nm)')}
     fig,axes=plt.subplots(1,2,figsize=(15,7),layout='constrained')
     tn=Normalize(4500,11000); rn=Normalize(0,65)
@@ -67,15 +77,11 @@ def main():
             # individual points under the mean without shifting coordinates.
             axes[1].scatter(pp,tt,c=vv,cmap='viridis',norm=rn,marker=marker,s=140,alpha=.2)
         else:
-            for state, mean in zip(states, means):
-                values = [r['R_percent'] for r in rr if (r['pressure_GPa'],r['temperature_K']) == state]
-                if len(values) >= 2:
-                    axes[0].errorbar(state[0], mean, yerr=np.std(values, ddof=1), fmt='none', color='black', capsize=3, zorder=2)
             axes[0].scatter(pp,vv,c=tt,cmap='plasma',norm=tn,marker=marker,s=50,edgecolor='black',linewidth=.5,label=display)
         axes[1].scatter([x[0] for x in states],[x[1] for x in states],c=means,cmap='viridis',norm=rn,marker=marker,s=50,edgecolor='black',linewidth=.5,label=display)
         for pressure,temp in states:
             count=sum((r['pressure_GPa'],r['temperature_K'])==(pressure,temp) for r in rr)
-            if count>1: axes[1].annotate('n='+str(count),(pressure,temp),xytext=(5,7),textcoords='offset points',fontsize=8)
+            if count>1 and 'DFT-MD' not in label: axes[1].annotate('n='+str(count),(pressure,temp),xytext=(5,7),textcoords='offset points',fontsize=8)
     fig.colorbar(plt.cm.ScalarMappable(norm=tn,cmap='plasma'),ax=axes[0],label='Temperature (K)')
     fig.colorbar(plt.cm.ScalarMappable(norm=rn,cmap='viridis'),ax=axes[1],label='Reflectivity (%)')
     axes[0].set(xlabel='Pressure (GPa)',ylabel='Reflectivity (%)',title='Reflectivity and temperature')
@@ -84,7 +90,7 @@ def main():
     axes[1].set_ylim(4000,11500)
     for ax in axes: ax.set_xlim(50,430);ax.grid(alpha=.18)
     fig.legend(*axes[0].get_legend_handles_labels(),loc='outside lower center',ncol=2,fontsize=9)
-    fig.suptitle('H₂O and H reflectivity: different media and thermodynamic paths')
+    fig.suptitle('532 nm reflectivity: compositions, literature and P–T conditions')
     for ext in ('png','pdf'):fig.savefig(str(out)+'.'+ext,dpi=180)
     plt.close(fig)
     with open(str(out)+'.csv','w',newline='') as f:

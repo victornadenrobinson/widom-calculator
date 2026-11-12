@@ -30,22 +30,38 @@ def main():
     p.add_argument('--temps',type=int,nargs='+',default=[5000,7000]);p.add_argument('--pmin',type=float,default=250);p.add_argument('--pmax',type=float,default=450)
     p.add_argument('--pressure',type=float,default=350);p.add_argument('--frames',type=int,default=2)
     p.add_argument('--comps',nargs='+',default=['h','h2.25o','h5o','h7o'])
+    p.add_argument('--exclude-root',action='append',default=[],help='skip source trajectories and run folders already present in these prepared-case roots')
+    p.add_argument('--screen-source-paths',action='store_true',help='exclude TDI lambda windows and explicitly solid/crystal-labelled paths; liquid phase still requires validation')
+    p.add_argument('--allow-empty',action='store_true',help='exit successfully without creating output when no candidate is available')
     a=p.parse_args();out=Path(a.out)
     if out.exists():raise SystemExit('Refusing to overwrite '+str(out))
     if a.frames<1:raise SystemExit('frames must be positive')
     pot=Path(a.potcar).read_bytes();species=[x.decode().capitalize() for x in re.findall(rb'VRHFIN\s*=\s*([A-Za-z]+)',pot)]
     if species not in (['H','O'],['O','H']):raise SystemExit('POTCAR must contain exactly H and O datasets')
     with open(a.inventory,newline='') as f: rows=list(csv.DictReader(f))
+    def run_key(path):
+        path=Path(path).resolve(); parent=path.parent
+        if re.fullmatch(r'out\d+',parent.name,re.I):parent=parent.parent
+        return str(parent)
+    excluded=set()
+    for root in a.exclude_root:
+        for f in Path(root).glob('h*o_P*_frame*/provenance.json'):
+            try:
+                info=json.loads(f.read_text());traj=info.get('trajectory')
+                if traj and info.get('source_kind')=='DFT-MD OUTCAR segment':excluded.add(run_key(traj))
+            except (OSError,ValueError):raise SystemExit('Cannot inspect provenance '+str(f))
+    print(f'Excluding {len(excluded)} previously prepared DFT-MD source-run folders.')
     groups={}
     for r in rows:
         c=r.get('comp_snap','').lower();t=num(r,'True_T_K');P=num(r,'True_P_GPa');path=r.get('Path','')
         if c not in a.comps or t is None or P is None or not a.pmin<=P<=a.pmax or not path:continue
+        if a.screen_source_paths and (re.search(r'lambda_',path,re.I) or re.search(r'(?:^|[/_-])(?:solid|crystal)(?:[/_-]|$)',path,re.I)):continue
         if str(r.get('good','')).strip().lower() not in ('true','1','yes'):continue
         matched=min(a.temps,key=lambda x:abs(x-t))
         if abs(t-matched)>250:continue
         choices=[Path(path)] if Path(path).is_absolute() else [Path(x)/path for x in a.source_root]
         source=next((x for x in choices if x.is_file()),None)
-        if source is None:continue
+        if source is None or run_key(source) in excluded:continue
         # Liquid-labelled trajectories preferred, but not certified by name.
         preference=0 if re.search(r'liquid|liq',path,re.I) else 1
         groups.setdefault((c,matched),[]).append((preference,abs(P-a.pressure),str(source),r))
@@ -61,7 +77,11 @@ def main():
                 selected.append((key,source,r,frames,idx));break
             except Exception as exc:print('Cannot use',source,':',exc)
         else:print('No readable MD trajectory for',key)
-    if not selected:raise SystemExit('No candidate DFT-MD trajectories readable; no output created.')
+    if not selected:
+        if a.allow_empty:
+            print('No candidate DFT-MD trajectories readable; no output created.')
+            return
+        raise SystemExit('No candidate DFT-MD trajectories readable; no output created.')
     out.mkdir(parents=True);report=[]
     for (comp,T),source,r,frames,idx in selected:
         P=num(r,'True_P_GPa')

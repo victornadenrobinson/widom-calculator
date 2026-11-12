@@ -92,8 +92,8 @@ def main():
     signal.signal(signal.SIGINT,interrupt);signal.signal(signal.SIGTERM,interrupt)
     dashboard = sys.stdout.isatty()
     if dashboard:
-        from eos_h4_dashboard import render
-    started=time.monotonic(); last=0
+        from eos_h4_dashboard import render, refresh_screen
+    started=time.monotonic(); last=0; previous_lines=0
     envbase=os.environ.copy()
     for key in ('VMAX','VMIN','PS','EQ','NREP','NATOMS','GRACE_MODE','HHWALL','GRACE_UQ','EOS_QUEUE'):
         envbase.pop(key,None)
@@ -106,7 +106,7 @@ def main():
                 item['log'].close(); del running[pid]
                 if rc != 0 or item['task']['vpa'] not in saved(item['table']):
                     failed.append((item['task'],rc,item['logpath']))
-                    print(f"FAILED {item['task']['T']} K vpa={item['task']['vpa']:.4f}, exit={rc}; {item['logpath']}",flush=True)
+                    if not dashboard: print(f"FAILED {item['task']['T']} K vpa={item['task']['vpa']:.4f}, exit={rc}; {item['logpath']}",flush=True)
                 else:finished+=1
             while tasks and not stop and not failed:
                 counts=[sum(item['gpu']==g for item in running.values()) for g in range(a.gpus)]
@@ -130,7 +130,7 @@ def main():
                 summary=f'elapsed {int(now-started)}s | done {finished} (+{completed} saved) | running {len(running)} {counts}/GPU | pending {len(tasks)} | failed {len(failed)}'
                 if dashboard:
                     try:
-                        print('\033[H\033[2J'+summary+'\n'+render(ROOT, viewer=False),flush=True)
+                        previous_lines=refresh_screen(render(ROOT, viewer=False, summary=summary), previous_lines)
                     except Exception as exc:
                         # A display problem must never stop or kill MD workers.
                         print(summary+f' | dashboard unavailable: {exc}',flush=True)
@@ -144,6 +144,8 @@ def main():
         for item in running.values():
             item['proc'].wait();item['log'].close()
         for f in locks:f.close()
+    for task,rc,logpath in failed:
+        print(f"FAILED {task['T']} K vpa={task['vpa']:.4f}, exit={rc}; {logpath}",flush=True)
     if stop or failed:raise SystemExit('Stopped: completed rows retained; interrupted volumes restart. Check failures before resuming.')
     print('H4O queue complete. Screen phase and convergence before using as liquid EOS.')
 

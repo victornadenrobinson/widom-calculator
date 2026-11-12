@@ -32,10 +32,12 @@ def main():
     p.add_argument('--comps',nargs='+',default=['h','h2.25o','h5o','h7o'])
     p.add_argument('--exclude-root',action='append',default=[],help='skip source trajectories and run folders already present in these prepared-case roots')
     p.add_argument('--screen-source-paths',action='store_true',help='exclude TDI lambda windows and explicitly solid/crystal-labelled paths; liquid phase still requires validation')
+    p.add_argument('--min-new-pressure-gap',type=float,default=0,help='minimum GPa from an already prepared same-composition, same-temperature DFT-MD state')
     p.add_argument('--allow-empty',action='store_true',help='exit successfully without creating output when no candidate is available')
     a=p.parse_args();out=Path(a.out)
     if out.exists():raise SystemExit('Refusing to overwrite '+str(out))
     if a.frames<1:raise SystemExit('frames must be positive')
+    if not math.isfinite(a.min_new_pressure_gap) or a.min_new_pressure_gap<0:raise SystemExit('min-new-pressure-gap must be finite and nonnegative')
     pot=Path(a.potcar).read_bytes();species=[x.decode().capitalize() for x in re.findall(rb'VRHFIN\s*=\s*([A-Za-z]+)',pot)]
     if species not in (['H','O'],['O','H']):raise SystemExit('POTCAR must contain exactly H and O datasets')
     with open(a.inventory,newline='') as f: rows=list(csv.DictReader(f))
@@ -43,12 +45,16 @@ def main():
         path=Path(path).resolve(); parent=path.parent
         if re.fullmatch(r'out\d+',parent.name,re.I):parent=parent.parent
         return str(parent)
-    excluded=set()
+    excluded=set(); existing_states=[]
     for root in a.exclude_root:
         for f in Path(root).glob('h*o_P*_frame*/provenance.json'):
             try:
                 info=json.loads(f.read_text());traj=info.get('trajectory')
-                if traj and info.get('source_kind')=='DFT-MD OUTCAR segment':excluded.add(run_key(traj))
+                if traj and info.get('source_kind')=='DFT-MD OUTCAR segment':
+                    excluded.add(run_key(traj))
+                    comp=str(info.get('source_row',{}).get('comp_snap','')).lower()
+                    t=num(info,'temperature_set_K');pressure=num(info,'pressure_mean_GPa')
+                    if comp and t is not None and pressure is not None:existing_states.append((comp,t,pressure))
             except (OSError,ValueError):raise SystemExit('Cannot inspect provenance '+str(f))
     print(f'Excluding {len(excluded)} previously prepared DFT-MD source-run folders.')
     groups={}
@@ -57,6 +63,7 @@ def main():
         if c not in a.comps or t is None or P is None or not a.pmin<=P<=a.pmax or not path:continue
         if a.screen_source_paths and (re.search(r'lambda_',path,re.I) or re.search(r'(?:^|[/_-])(?:solid|crystal)(?:[/_-]|$)',path,re.I)):continue
         if str(r.get('good','')).strip().lower() not in ('true','1','yes'):continue
+        if any(c==old_c and abs(t-old_t)<=250 and abs(P-old_p)<a.min_new_pressure_gap for old_c,old_t,old_p in existing_states):continue
         matched=min(a.temps,key=lambda x:abs(x-t))
         if abs(t-matched)>250:continue
         choices=[Path(path)] if Path(path).is_absolute() else [Path(x)/path for x in a.source_root]

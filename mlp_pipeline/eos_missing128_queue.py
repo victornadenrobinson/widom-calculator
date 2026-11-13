@@ -48,9 +48,18 @@ def main():
     ap.add_argument('--per-gpu', type=int, default=4)
     ap.add_argument('--model', default='grace-ft:runs/grace/ft_mfinkc_cont')
     ap.add_argument('--refresh', type=float, default=10)
+    ap.add_argument('--max-failures',type=int,default=3,help='stop launching after this many failures; running jobs finish')
+    ap.add_argument('--skip',action='append',default=[],metavar='COMP:T:VPA',help='skip this volume for this invocation; can be repeated')
     a = ap.parse_args()
-    if a.gpus < 1 or a.per_gpu < 1 or a.refresh <= 0:
+    if a.gpus < 1 or a.per_gpu < 1 or a.refresh <= 0 or a.max_failures < 1:
         ap.error('GPU counts and refresh must be positive')
+    skipped_keys=set()
+    for value in a.skip:
+        try:
+            c,t,v=value.split(':');t=int(t);v=float(v)
+            if c not in HPER or t<=0 or not np.isfinite(v) or v<=0:raise ValueError()
+            skipped_keys.add((c,t,round(v,4)))
+        except ValueError:ap.error('--skip must be COMP:T:VPA, e.g. h3o:4000:1.7365')
     os.chdir(ROOT)
     groups = []
     for g in json.loads(Path(a.plan).read_text()):
@@ -77,7 +86,7 @@ def main():
                 fcntl.flock(f,fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError:
             raise SystemExit('A planned composition/temperature lock is held: stop or finish the overlapping queue first.')
-    tasks=[]; completed=0; state_specs=[]
+    tasks=[]; completed=0; state_specs=[]; skipped=[]; matched_skips=set()
     for group in groups:
         temp=group['T']; batch=[]
         for comp in group['compositions']:
@@ -93,13 +102,18 @@ def main():
             volumes=sorted(round(float(v),4) for v in grid)
             if not volumes or any(not np.isfinite(v) or v<=0 for v in volumes) or len(volumes)!=len(set(volumes)):
                 raise SystemExit(f'{temp} K {comp}: invalid or duplicate volumes')
-            state_specs.append(dict(T=temp,comp=comp,tag=tag,directory=directory,volumes=volumes))
+            skip_volumes=[v for v in volumes if (comp,temp,v) in skipped_keys and v not in done]
+            matched_skips.update((comp,temp,v) for v in volumes if (comp,temp,v) in skipped_keys)
+            state_specs.append(dict(T=temp,comp=comp,tag=tag,directory=directory,volumes=volumes,skipped=skip_volumes))
             for vol in volumes:
                 if vol in done:completed+=1;continue
+                if vol in skip_volumes:
+                    skipped.append((comp,temp,vol));continue
                 batch.append(dict(T=temp,comp=comp,hper=h,nat=nat,vpa=vol,directory=directory,tag=tag,eq=group.get('eq',.25),ps=group.get('ps',.75),cost=nat*(.5+4/vol)))
-            print(f'{temp} K {comp} ({nat} atoms, 128 O): {sum(v not in done for v in volumes)} to run, {sum(v in done for v in volumes)} saved',flush=True)
+            print(f'{temp} K {comp} ({nat} atoms, 128 O): {sum(v not in done and v not in skip_volumes for v in volumes)} to run, {sum(v in done for v in volumes)} saved, {len(skip_volumes)} skipped',flush=True)
         tasks.extend(sorted(batch,key=lambda t:-t['cost']))
-    print(f'{len(tasks)} planned volumes pending, {completed} saved; {a.gpus} GPUs x {a.per_gpu} slots. H4O and pure H excluded.',flush=True)
+    if skipped_keys-matched_skips:raise SystemExit(f'Skip does not match planned grid: {sorted(skipped_keys-matched_skips)}')
+    print(f'{len(tasks)} planned volumes pending, {completed} saved, {len(skipped)} skipped; {a.gpus} GPUs x {a.per_gpu} slots. H4O and pure H excluded.',flush=True)
     if not a.run:
         print('Preview only; add --run within the GPU allocation.')
         return
@@ -129,7 +143,7 @@ def main():
                     failed.append((item['task'],rc,item['logpath']))
                     if not dashboard: print(f"FAILED {item['task']['T']} K vpa={item['task']['vpa']:.4f}, exit={rc}; {item['logpath']}",flush=True)
                 else:finished+=1
-            while tasks and not stop and not failed:
+            while tasks and not stop and len(failed)<a.max_failures:
                 counts=[sum(item['gpu']==g for item in running.values()) for g in range(a.gpus)]
                 free=[g for g in range(a.gpus) if counts[g] < a.per_gpu]
                 if not free:break
@@ -148,7 +162,9 @@ def main():
             now=time.monotonic()
             if now-last>=a.refresh:
                 counts=[sum(item['gpu']==g for item in running.values()) for g in range(a.gpus)]
-                summary=f'elapsed {int(now-started)}s | done {finished} (+{completed} saved) | running {len(running)} {counts}/GPU | pending {len(tasks)} | failed {len(failed)}'
+                summary=f'elapsed {int(now-started)}s | done {finished} (+{completed} saved) | running {len(running)} {counts}/GPU | pending {len(tasks)} | failed {len(failed)} | skipped {len(skipped)}'
+                if failed:
+                    ft,rc,_=failed[-1];summary+=f" | last: {ft['comp']} {ft['T']}K v={ft['vpa']:.4f}"
                 if dashboard:
                     try:
                         previous_lines=refresh_screen(render(ROOT, state_specs, running, tasks, summary=summary), previous_lines)
@@ -157,7 +173,7 @@ def main():
                         print(summary+f' | dashboard unavailable: {exc}',flush=True)
                 else: print(summary,flush=True)
                 last=now
-            if (stop or failed) and not running:break
+            if (stop or len(failed)>=a.max_failures) and not running:break
             if tasks or running:time.sleep(2)
     finally:
         for item in running.values():
@@ -167,7 +183,13 @@ def main():
         for f in locks:f.close()
     for task,rc,logpath in failed:
         print(f"FAILED {task['T']} K vpa={task['vpa']:.4f}, exit={rc}; {logpath}",flush=True)
-    if stop or failed:raise SystemExit('Stopped: completed rows retained; interrupted volumes restart. Check failures before resuming.')
-    print('128-O missing-state queue complete. Screen phase and convergence before using as liquid EOS.')
+    for comp,temp,vol in skipped:
+        print(f'SKIPPED {comp} {temp} K vpa={vol:.4f}; not marked complete',flush=True)
+    if stop or failed:
+        raise SystemExit('Stopped or finished with failures: completed rows retained; inspect failures before resuming.')
+    if skipped:
+        print('Queue finished with explicitly skipped points; these remain incomplete.',flush=True)
+    else:
+        print('128-O missing-state queue complete. Screen phase and convergence before using as liquid EOS.')
 
 if __name__=='__main__':main()

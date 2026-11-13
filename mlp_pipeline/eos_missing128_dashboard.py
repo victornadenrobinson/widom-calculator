@@ -88,8 +88,8 @@ def render(root, specs, running, pending, summary):
         t,c=spec['T'],spec['comp'];done=records[(t,c)]
         nr=sum(j['T']==t and j['comp']==c for j in jobs)
         nw=sum(j['T']==t and j['comp']==c for j in pending)
-        ns=sum(v in done for v in spec['volumes']);status='running' if nr else ('done' if ns==len(spec['volumes']) else 'waiting')
-        panel.append(f'{t}K {c} {status}: {ns}/{len(spec["volumes"])} run {nr} wait {nw}')
+        ns=sum(v in done for v in spec['volumes']);sk=len(spec.get('skipped',[]));status='running' if nr else ('done' if ns==len(spec['volumes']) else ('skipped' if sk and not nw else 'waiting'))
+        panel.append(f'{t}K {c} {status}: {ns}/{len(spec["volumes"])} run {nr} wait {nw}'+(f' skip {sk}' if sk else ''))
     selected=max([s['T'] for s in specs],key=lambda t:sum(j['T']==t for j in jobs))
     points=[]
     for spec in specs:

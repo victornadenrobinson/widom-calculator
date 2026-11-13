@@ -45,13 +45,14 @@ def main():
     ap.add_argument('plan')
     ap.add_argument('--run', action='store_true')
     ap.add_argument('--gpus', type=int, default=4)
-    ap.add_argument('--per-gpu', type=int, default=4)
+    ap.add_argument('--per-gpu', type=int, default=4, help='scheduling slots per GPU')
+    ap.add_argument('--h7-slots', type=int, default=2, help='slots occupied by each H7O job')
     ap.add_argument('--model', default='grace-ft:runs/grace/ft_mfinkc_cont')
     ap.add_argument('--refresh', type=float, default=10)
     ap.add_argument('--max-failures',type=int,default=3,help='stop launching after this many failures; running jobs finish')
     ap.add_argument('--skip',action='append',default=[],metavar='COMP:T:VPA',help='skip this volume for this invocation; can be repeated')
     a = ap.parse_args()
-    if a.gpus < 1 or a.per_gpu < 1 or a.refresh <= 0 or a.max_failures < 1:
+    if a.gpus < 1 or a.per_gpu < 1 or not 1 <= a.h7_slots <= a.per_gpu or a.refresh <= 0 or a.max_failures < 1:
         ap.error('GPU counts and refresh must be positive')
     skipped_keys=set()
     for value in a.skip:
@@ -113,7 +114,7 @@ def main():
             print(f'{temp} K {comp} ({nat} atoms, 128 O): {sum(v not in done and v not in skip_volumes for v in volumes)} to run, {sum(v in done for v in volumes)} saved, {len(skip_volumes)} skipped',flush=True)
         tasks.extend(sorted(batch,key=lambda t:-t['cost']))
     if skipped_keys-matched_skips:raise SystemExit(f'Skip does not match planned grid: {sorted(skipped_keys-matched_skips)}')
-    print(f'{len(tasks)} planned volumes pending, {completed} saved, {len(skipped)} skipped; {a.gpus} GPUs x {a.per_gpu} slots. H4O and pure H excluded.',flush=True)
+    print(f'{len(tasks)} planned volumes pending, {completed} saved, {len(skipped)} skipped; {a.gpus} GPUs x {a.per_gpu} slots; H7O uses {a.h7_slots} slots, others 1. H4O and pure H excluded.',flush=True)
     if not a.run:
         print('Preview only; add --run within the GPU allocation.')
         return
@@ -144,10 +145,17 @@ def main():
                     if not dashboard: print(f"FAILED {item['task']['T']} K vpa={item['task']['vpa']:.4f}, exit={rc}; {item['logpath']}",flush=True)
                 else:finished+=1
             while tasks and not stop and len(failed)<a.max_failures:
-                counts=[sum(item['gpu']==g for item in running.values()) for g in range(a.gpus)]
-                free=[g for g in range(a.gpus) if counts[g] < a.per_gpu]
-                if not free:break
-                gpu=min(free,key=lambda g:counts[g]); task=tasks.pop(0); task['directory'].mkdir(parents=True,exist_ok=True)
+                used=[sum(item['slots'] for item in running.values() if item['gpu']==g) for g in range(a.gpus)]
+                # Find the first queued task that fits, so a large H7O task
+                # cannot block a smaller task from filling an available slot.
+                choice=None
+                for index, candidate in enumerate(tasks):
+                    slots=a.h7_slots if candidate['comp']=='h7o' else 1
+                    free=[g for g in range(a.gpus) if used[g]+slots <= a.per_gpu]
+                    if free:
+                        choice=(index,slots,min(free,key=lambda g:used[g]));break
+                if choice is None:break
+                index,slots,gpu=choice; task=tasks.pop(index); task['directory'].mkdir(parents=True,exist_ok=True)
                 logpath=task['directory']/f"flat_log_v{task['vpa']:.4f}.txt"
                 log=logpath.open('a'); log.write(f"\nStarting {time.strftime('%Y-%m-%d %H:%M:%S')} GPU {ids[gpu]}\n");log.flush()
                 cmd=[sys.executable,str(CODE/'17_eos_md.py'),a.model,'--phase','bcc','--branch','liquid','--hper',str(task['hper']),'--nrep','4',
@@ -156,7 +164,7 @@ def main():
                      '--T',str(task['T']),'--vpa',str(task['vpa']),'--equil-ps',str(task['eq']),'--ps',str(task['ps']),
                      '--report-fs','50','--tag',task['tag'],'--outdir',str(task['directory'])]
                 proc=subprocess.Popen(cmd,stdout=log,stderr=subprocess.STDOUT,env=dict(envbase,CUDA_VISIBLE_DEVICES=ids[gpu]))
-                running[proc.pid]=dict(proc=proc,gpu=gpu,task=task,log=log,logpath=logpath,table=task['directory']/(task['tag']+'.csv'))
+                running[proc.pid]=dict(proc=proc,gpu=gpu,slots=slots,task=task,log=log,logpath=logpath,table=task['directory']/(task['tag']+'.csv'))
                 if not dashboard:
                     print(f"START {task['T']} K vpa={task['vpa']:.4f} GPU={gpu}; {logpath}",flush=True)
             now=time.monotonic()
